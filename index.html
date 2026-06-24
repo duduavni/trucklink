@@ -2062,7 +2062,7 @@ async function loadShipmentsFromDB() {
     // עסק – טוען הובלות שלו
     const { data, error } = await sb
       .from('shipments')
-      .select('*, bids(id)')
+      .select('*, bids(id, status, driver_id, profiles!driver_id(full_name))')
       .eq('business_id', currentUser.id)
       .order('created_at', { ascending: false });
 
@@ -2070,25 +2070,30 @@ async function loadShipmentsFromDB() {
     BUSINESS_SHIPMENTS.length = 0;
 
     if (!error && data?.length > 0) {
-      data.forEach(s => BUSINESS_SHIPMENTS.push({
-        id:                  s.id,
-        title:               s.title || `${s.from_city} → ${s.to_city}`,
-        from:                s.from_city,
-        to:                  s.to_city,
-        fromLatLng:          cityToLatLng(s.from_city),
-        toLatLng:            cityToLatLng(s.to_city),
-        weight:              s.weight || 0,
-        price:               s.base_price || 0,
-        status:              s.status || 'open',
-        bids:                s.bids?.length || 0,
-        date:                formatDate(s.pickup_date),
-        type:                TYPES[0],
-        description:         s.description || '',
-        images:              s.image_urls || [],
-        createdAt:           s.created_at || null,
-        delivery_proof_urls: s.delivery_proof_urls || [],
-        delivery_note:       s.delivery_note || '',
-      }));
+      data.forEach(s => {
+        const acceptedBid = s.bids?.find(b => b.status === 'accepted');
+        BUSINESS_SHIPMENTS.push({
+          id:                  s.id,
+          title:               s.title || `${s.from_city} → ${s.to_city}`,
+          from:                s.from_city,
+          to:                  s.to_city,
+          fromLatLng:          cityToLatLng(s.from_city),
+          toLatLng:            cityToLatLng(s.to_city),
+          weight:              s.weight || 0,
+          price:               s.base_price || 0,
+          status:              s.status || 'open',
+          bids:                s.bids?.length || 0,
+          date:                formatDate(s.pickup_date),
+          type:                TYPES[0],
+          description:         s.description || '',
+          images:              s.image_urls || [],
+          createdAt:           s.created_at || null,
+          delivery_proof_urls: s.delivery_proof_urls || [],
+          delivery_note:       s.delivery_note || '',
+          acceptedDriverId:    acceptedBid?.driver_id || null,
+          acceptedDriverName:  acceptedBid?.profiles?.full_name || 'הנהג',
+        });
+      });
       showToast(`✅ ${data.length} הובלות נטענו`);
     } else if (!error) {
       showToast('אין לך הובלות עדיין - פרסם הובלה ראשונה!');
@@ -2176,7 +2181,13 @@ function subscribeRealtime() {
     })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'shipments' }, payload => {
       if (currentProfile?.role === 'driver') loadShipmentsFromDB();
-      if (currentProfile?.role === 'business' && payload.new.business_id === currentUser.id) loadShipmentsFromDB();
+      if (currentProfile?.role === 'business' && payload.new.business_id === currentUser.id) {
+        loadShipmentsFromDB();
+        if (payload.new.status === 'delivered') {
+          showToast('🎉 הנהג דיווח שההובלה סופקה! ניתן עכשיו לדרג אותו', '#22c55e');
+          sendLocalNotification('ההובלה סופקה!', 'הנהג דיווח על מסירה - ניתן לדרג אותו עכשיו');
+        }
+      }
     })
     .on('postgres_changes', { event:'DELETE', schema:'public', table:'shipments' }, () => {
       // הובלה נמחקה ע"י עסק – לרענן את הפיד אצל כולם כדי שתיעלם מיד
@@ -2887,14 +2898,15 @@ window.renderBList = function() {
           actions.className = 'extra-actions';
           actions.style.cssText = 'display:flex;gap:6px;margin-top:8px';
           actions.innerHTML = `
-            <button onclick="openChat('${s.id}','נהג')" data-chat-shipment="${s.id}"
+            <button onclick="openChat('${s.id}','${s.acceptedDriverName||'נהג'}')" data-chat-shipment="${s.id}"
               style="flex:1;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600">
               💬 צ'אט עם הנהג
             </button>
-            <button onclick="openRatingModal('${s.id}','הנהג','driver-id')"
-              style="flex:1;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:var(--accent);border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600">
-              ⭐ דרג נהג
-            </button>
+            ${s.status === 'delivered' && s.acceptedDriverId ? `
+            <button onclick="openRatingModal('${s.id}','${(s.acceptedDriverName||'הנהג').replace(/'/g,"\\'")}','${s.acceptedDriverId}')"
+              style="flex:1;background:linear-gradient(135deg,rgba(245,166,35,.2),rgba(245,166,35,.1));border:1px solid rgba(245,166,35,.5);color:var(--accent);border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">
+              ⭐ דרג את ${s.acceptedDriverName||'הנהג'}
+            </button>` : ''}
             <button onclick="openPaymentModal('${s.id}',${s.price},'הנהג')"
               style="flex:1;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600">
               💳 שלם
