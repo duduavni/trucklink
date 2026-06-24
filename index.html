@@ -1704,9 +1704,7 @@ async function loadMyAcceptedShipments() {
     .filter(b => !dismissed.includes(b.id))
     .map(b => {
       const businessName = businessNames[b.shipments?.business_id] || 'העסק';
-      // encode לשם עסק שמכיל גרשיים/תווים מיוחדים
       const safeId = b.shipment_id;
-      const safeName = encodeURIComponent(businessName);
       return `
       <div class="accepted-banner-item" data-bid-id="${b.id}" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#08090c;border-radius:14px;padding:12px 14px;box-shadow:0 6px 24px rgba(34,197,94,.45);display:flex;align-items:center;gap:10px;animation:fadeUp .25s ease both">
         <div style="font-size:26px">🥳</div>
@@ -1714,7 +1712,7 @@ async function loadMyAcceptedShipments() {
           <div style="font-weight:800;font-size:13px">נבחרת לביצוע הובלה!</div>
           <div style="font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.shipments?.from_city||''} → ${b.shipments?.to_city||''} · ₪${b.price}</div>
         </div>
-        <button onclick="openChat('${safeId}', decodeURIComponent('${safeName}'))"
+        <button data-shipment-id="${safeId}" data-business-name="${businessName.replace(/"/g,'&quot;')}" onclick="openChatFromBanner(this)"
           style="background:rgba(0,0,0,.2);border:none;color:#08090c;border-radius:9px;padding:6px 10px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:800;white-space:nowrap;flex-shrink:0">
           💬 צ'אט עם ${businessName}
         </button>
@@ -1729,6 +1727,12 @@ function dismissBanner(btn, bidId) {
   dismissed.push(bidId);
   sessionStorage.setItem('dismissed-banners', JSON.stringify(dismissed));
   btn.closest('.accepted-banner-item').remove();
+}
+
+function openChatFromBanner(btn) {
+  const shipmentId = btn.getAttribute('data-shipment-id');
+  const businessName = btn.getAttribute('data-business-name');
+  openChat(shipmentId, businessName);
 }
 
 async function loadShipmentsFromDB() {
