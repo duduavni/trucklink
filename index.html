@@ -49,16 +49,16 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 
 /* SIDEBAR */
 #sidebar { width:300px; background:var(--deep); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
-#earnings { padding:10px 14px; border-bottom:1px solid var(--border); background:rgba(245,166,35,.04); display:flex; justify-content:space-between; align-items:center; }
+#earnings { padding:10px 14px; border-bottom:1px solid var(--border); background:rgba(245,166,35,.04); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
 .earn-item .label { font-size:10px; color:var(--muted); }
 .earn-item .val { font-family:monospace; font-weight:800; font-size:17px; color:var(--accent); }
 .earn-item .val2 { font-family:monospace; font-weight:700; font-size:15px; }
 .earn-item .val3 { font-weight:700; font-size:13px; color:var(--accent); }
-#filters { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; gap:5px; flex-wrap:wrap; }
+#filters { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; gap:5px; flex-wrap:wrap; flex-shrink:0; }
 .filter-btn { padding:4px 9px; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:inherit; font-size:11px; font-weight:600; cursor:pointer; transition:all .18s; }
 .filter-btn.active { border-color:var(--accent); background:rgba(245,166,35,.12); color:var(--accent); }
-#list-header { padding:6px 12px 0; display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
-#list { flex:1; overflow-y:auto; padding:6px 12px 12px; display:flex; flex-direction:column; gap:6px; }
+#list-header { padding:6px 12px 0; display:flex; justify-content:space-between; font-size:11px; color:var(--muted); flex-shrink:0; }
+#list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:6px 12px 12px; display:flex; flex-direction:column; gap:6px; min-height:0; }
 .ship-card { background:var(--card); border:1px solid var(--border); border-radius:11px; padding:9px 11px; cursor:pointer; transition:all .18s; position:relative; overflow:hidden; }
 .ship-card:hover, .ship-card.hovered { border-color:rgba(245,166,35,.35); }
 .ship-card.selected { background:rgba(22,30,46,.9); }
@@ -163,7 +163,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   <!-- SIDEBAR -->
   <div id="sidebar">
     <div id="earnings">
-      <div class="earn-item"><div class="label">הכנסה השבוע</div><div class="val">₪3,450</div></div>
+      <div class="earn-item"><div class="label">הכנסה השבוע</div><div class="val" id="weekly-income">₪0</div></div>
       <div class="earn-item" style="cursor:pointer" onclick="setFilter('mine', document.getElementById('my-shipments-btn'))">
         <div class="label">ההובלות שלי</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-top:2px">
@@ -229,7 +229,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   </div>
 
   <!-- BUSINESS VIEW -->
-  <div id="business-view" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+  <div id="business-view" style="display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0">
     <!-- Business sidebar -->
     <div style="width:320px;background:var(--deep);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0">
       <!-- Stats -->
@@ -264,7 +264,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
         <button class="b-tab" onclick="setBTab('done',this)" style="flex:1;padding:10px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent">הושלם</button>
       </div>
       <!-- Business shipments list -->
-      <div id="b-list" style="flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px"></div>
+      <div id="b-list" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:0"></div>
     </div>
 
     <!-- Business map -->
@@ -1554,6 +1554,22 @@ async function initAuth() {
   }
 }
 
+async function loadDriverStats() {
+  if (!currentUser || currentProfile?.role !== 'driver') return;
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await sb
+    .from('bids')
+    .select('price, shipments(status, updated_at)')
+    .eq('driver_id', currentUser.id)
+    .eq('status', 'accepted');
+  if (!data) return;
+  const weeklyTotal = data
+    .filter(b => ['delivered','done'].includes(b.shipments?.status) && b.shipments?.updated_at > weekAgo)
+    .reduce((sum, b) => sum + (b.price || 0), 0);
+  const el = document.getElementById('weekly-income');
+  if (el) el.textContent = `₪${weeklyTotal.toLocaleString('he-IL')}`;
+}
+
 async function loadProfile() {
   const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
   currentProfile = data;
@@ -1563,8 +1579,8 @@ async function loadProfile() {
   if (data?.role === 'business') setMode('business');
   else {
     setMode('driver');
-    // טען באנרים של הובלות שהנהג נבחר לבצע (גם אם פספס את האירוע)
     loadMyAcceptedShipments();
+    loadDriverStats();
   }
 }
 
@@ -1956,8 +1972,8 @@ async function loadMyAcceptedShipments() {
     if (profiles) profiles.forEach(p => { businessNames[p.id] = p.full_name; });
   }
 
-  // שמור מה שכבר נסגר ע"י הנהג (כדי לא להציג שוב)
-  const dismissed = JSON.parse(sessionStorage.getItem('dismissed-banners') || '[]');
+  // שמור מה שכבר נסגר ע"י הנהג (כדי לא להציג שוב - גם אחרי כניסה מחדש)
+  const dismissed = JSON.parse(localStorage.getItem('dismissed-banners') || '[]');
 
   container.innerHTML = data
     .filter(b => !dismissed.includes(b.id))
@@ -1982,9 +1998,9 @@ async function loadMyAcceptedShipments() {
 }
 
 function dismissBanner(btn, bidId) {
-  const dismissed = JSON.parse(sessionStorage.getItem('dismissed-banners') || '[]');
+  const dismissed = JSON.parse(localStorage.getItem('dismissed-banners') || '[]');
   dismissed.push(bidId);
-  sessionStorage.setItem('dismissed-banners', JSON.stringify(dismissed));
+  localStorage.setItem('dismissed-banners', JSON.stringify(dismissed));
   btn.closest('.accepted-banner-item').remove();
 }
 
@@ -2544,6 +2560,7 @@ async function updateDeliveryStatus(shipmentId, newStatus, btn) {
   showToast(`✅ סטטוס עודכן: ${getStatusLabel(newStatus)}`);
   loadShipmentsFromDB();
   renderMyShipments();
+  loadDriverStats();
 }
 
 function openDeliveryProofModal(shipmentId, triggerBtn) {
