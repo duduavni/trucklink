@@ -162,9 +162,14 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 
   <!-- SIDEBAR -->
   <div id="sidebar">
-    <div id="earnings">
-      <div class="earn-item"><div class="label">הכנסה השבוע</div><div class="val" id="weekly-income">₪0</div></div>
-      <div class="earn-item" style="cursor:pointer" onclick="setFilter('mine', document.getElementById('my-shipments-btn'))">
+
+    <!-- EARNINGS BAR -->
+    <div id="earnings" style="padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(245,166,35,.04);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <div class="earn-item">
+        <div class="label">הכנסה השבוע</div>
+        <div class="val" id="weekly-income">₪0</div>
+      </div>
+      <div class="earn-item" style="cursor:pointer;text-align:center" onclick="setFilter('mine', document.getElementById('my-shipments-btn'))">
         <div class="label">ההובלות שלי</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-top:2px">
           <div class="val2" id="my-shipments-count">0</div>
@@ -174,35 +179,42 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
           </div>
         </div>
       </div>
-      <div class="earn-item"><div class="label">דירוג</div><div class="val3">⭐ 4.9</div></div>
-    </div>
-    <div id="filters">
-      <button class="filter-btn active" onclick="setFilter('all',this)">🗺️ הכל</button>
-      <button class="filter-btn" onclick="setFilter('north',this)">🌿 צפון</button>
-      <button class="filter-btn" onclick="setFilter('center',this)">🏙️ מרכז</button>
-      <button class="filter-btn" onclick="setFilter('south',this)">🏜️ דרום</button>
-      <button class="filter-btn" onclick="setFilter('near',this)">📍 קצר</button>
-      <button class="filter-btn" onclick="setFilter('urgent',this)">🔥 דחוף</button>
-      <button class="filter-btn" id="my-shipments-btn" onclick="setFilter('mine',this)" style="display:none"></button>
+      <div class="earn-item" style="text-align:center">
+        <div class="label">דירוג</div>
+        <div class="val3" id="driver-rating">⭐ 4.9</div>
+      </div>
     </div>
 
-    <!-- RADIUS FILTER -->
-    <div id="radius-panel" style="padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(245,166,35,.03)">
+    <!-- TABS: הכל / מסביבי / ההובלות שלי -->
+    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+      <button id="tab-all" onclick="switchTab('all')"
+        style="flex:1;padding:10px 4px;border:none;border-bottom:2px solid var(--accent);background:transparent;color:var(--accent);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+        🗺️ כל ההובלות
+      </button>
+      <button id="tab-near" onclick="switchTab('near')"
+        style="flex:1;padding:10px 4px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">
+        📍 מסביבי
+      </button>
+      <button id="tab-mine" onclick="switchTab('mine')"
+        style="flex:1;padding:10px 4px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;position:relative">
+        🚛 שלי
+        <span id="mine-tab-badge" style="display:none;position:absolute;top:6px;right:8px;background:#ef4444;color:#fff;border-radius:50%;min-width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;padding:0 2px"></span>
+      </button>
+    </div>
+
+    <!-- NEAR ME PANEL (hidden by default) -->
+    <div id="near-panel" style="display:none;padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(245,166,35,.03);flex-shrink:0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:14px">📍</span>
-          <span style="font-size:12px;font-weight:600;color:var(--light)">מסביבי</span>
           <span id="radius-badge" style="font-size:10px;background:rgba(245,166,35,.15);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:700;display:none"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button id="locate-btn" onclick="locateMe()" style="background:var(--accent);border:none;color:var(--black);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px">
+        <div style="display:flex;gap:6px">
+          <button id="locate-btn" onclick="locateMe()" style="background:var(--accent);border:none;color:var(--black);border-radius:7px;padding:7px 14px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px">
             <span id="locate-icon">📡</span> <span id="locate-text">אתר אותי</span>
           </button>
-          <button id="radius-clear" onclick="clearRadius()" style="display:none;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 8px;cursor:pointer;font-family:inherit;font-size:11px">✕</button>
+          <button id="radius-clear" onclick="clearRadius()" style="display:none;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:7px 10px;cursor:pointer;font-family:inherit;font-size:11px">✕</button>
         </div>
       </div>
-
-      <!-- Slider – hidden until location found -->
       <div id="radius-slider-wrap" style="display:none">
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px">
           <span>10 ק"מ</span>
@@ -221,11 +233,20 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
         <div id="radius-result" style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center"></div>
       </div>
     </div>
+
+    <!-- REGION FILTER CHIPS -->
+    <div id="region-chips" style="padding:8px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0">
+      <button class="filter-btn active" onclick="setFilter('all',this)">הכל</button>
+      <button class="filter-btn" onclick="setFilter('north',this)">🌿 צפון</button>
+      <button class="filter-btn" onclick="setFilter('center',this)">🏙️ מרכז</button>
+      <button class="filter-btn" onclick="setFilter('south',this)">🏜️ דרום</button>
+      <button class="filter-btn" onclick="setFilter('urgent',this)">🔥 דחוף</button>
+      <button class="filter-btn" id="my-shipments-btn" onclick="setFilter('mine',this)" style="display:none"></button>
+    </div>
+
     <div id="list-header"><span id="list-count"></span><span style="color:var(--accent)">לפי מחיר ↓</span></div>
     <div id="list"></div>
-
-    <!-- לשונית ההובלות שלי -->
-    <div id="my-shipments-tab" style="display:none;flex:1;overflow-y:auto;padding:10px 12px"></div>
+    <div id="my-shipments-tab" style="display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;min-height:0"></div>
   </div>
 
   <!-- BUSINESS VIEW -->
@@ -547,6 +568,46 @@ function selectShipment(id) {
 function closeRoute() { selectShipment(selectedId); }
 
 // ── Filter ──
+function switchTab(tab) {
+  const tabs = ['all','near','mine'];
+  tabs.forEach(t => {
+    const btn = document.getElementById('tab-'+t);
+    if (btn) {
+      btn.style.borderBottomColor = t===tab ? 'var(--accent)' : 'transparent';
+      btn.style.color = t===tab ? 'var(--accent)' : 'var(--muted)';
+      btn.style.fontWeight = t===tab ? '700' : '600';
+    }
+  });
+  const nearPanel = document.getElementById('near-panel');
+  const regionChips = document.getElementById('region-chips');
+  const listEl = document.getElementById('list');
+  const headerEl = document.getElementById('list-header');
+  const mineEl = document.getElementById('my-shipments-tab');
+
+  if (tab === 'near') {
+    if (nearPanel) nearPanel.style.display = 'block';
+    if (regionChips) regionChips.style.display = 'none';
+    if (listEl) listEl.style.display = '';
+    if (headerEl) headerEl.style.display = '';
+    if (mineEl) mineEl.style.display = 'none';
+    setFilter('near', document.querySelector('.filter-btn') || { classList: { add:()=>{}, remove:()=>{} } });
+  } else if (tab === 'mine') {
+    if (nearPanel) nearPanel.style.display = 'none';
+    if (regionChips) regionChips.style.display = 'none';
+    if (listEl) listEl.style.display = 'none';
+    if (headerEl) headerEl.style.display = 'none';
+    if (mineEl) { mineEl.style.display = 'block'; mineEl.style.flex = '1'; }
+    renderMyShipments();
+  } else {
+    if (nearPanel) nearPanel.style.display = 'none';
+    if (regionChips) regionChips.style.display = 'flex';
+    if (listEl) listEl.style.display = '';
+    if (headerEl) headerEl.style.display = '';
+    if (mineEl) mineEl.style.display = 'none';
+    setFilter('all', document.querySelector('.filter-btn.active') || document.querySelector('.filter-btn'));
+  }
+}
+
 function setFilter(f, btn) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -801,37 +862,56 @@ function renderMarkers() {
 
 // ── Render List ──
 function renderList() {
-  const filtered=getFiltered();
-  document.getElementById('list-count').textContent=filtered.length+' הובלות';
-  const list=document.getElementById('list');
-  list.innerHTML='';
-  filtered.forEach(s=>{
-    const dist=getDist(s.fromId,s.toId);
-    const hasBid=myBids.has(s.id);
-    const isSel=selectedId===s.id;
-    const color=s.type.color;
-    const div=document.createElement('div');
-    div.className='ship-card'+(isSel?' selected':'');
-    div.style.borderColor=isSel?color:hasBid?'rgba(34,197,94,.4)':'var(--border)';
-    div.innerHTML=`
-      ${s.urgent&&!hasBid?'<div class="urgent-badge">🔥</div>':''}
-      <div class="card-top">
-        <div>
-          <div class="card-route">${s.type.icon} ${CITIES[s.fromId].name} → ${CITIES[s.toId].name}</div>
-          <div class="card-type">${s.type.label} · ${s.weight}ק"ג</div>
+  const filtered = getFiltered();
+  const listCountEl = document.getElementById('list-count');
+  if (listCountEl) listCountEl.textContent = filtered.length + ' הובלות';
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  if (!filtered.length) {
+    list.innerHTML = `<div style="text-align:center;padding:30px 20px;color:var(--muted)">
+      <div style="font-size:40px;margin-bottom:10px">🔍</div>
+      <div style="font-size:13px;font-weight:600">אין הובלות באזור זה</div>
+      <div style="font-size:11px;margin-top:4px">נסה לשנות את הסינון</div>
+    </div>`;
+    return;
+  }
+
+  filtered.forEach(s => {
+    const dist   = getDist(s.fromId, s.toId);
+    const hasBid = myBids.has(s.id);
+    const isSel  = selectedId === s.id;
+    const color  = s.type.color;
+    const net    = Math.round(s.price * 0.92);
+    const div    = document.createElement('div');
+    div.className = 'ship-card' + (isSel ? ' selected' : '');
+    div.style.borderColor = isSel ? color : hasBid ? 'rgba(34,197,94,.5)' : 'var(--border)';
+    div.innerHTML = `
+      ${s.urgent && !hasBid ? '<div class="urgent-badge">🔥 דחוף</div>' : ''}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ${CITIES[s.fromId].name} → ${CITIES[s.toId].name}
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.type.icon} ${s.type.label} · ⚖️ ${s.weight}ק"ג · 📏 ${dist}ק"מ</div>
         </div>
-        <div style="text-align:left">
-          <div class="card-price" style="color:${color}">₪${s.price}</div>
-          <div class="card-net">נטו ₪${Math.round(s.price*.92)}</div>
+        <div style="text-align:left;margin-right:8px;flex-shrink:0">
+          <div style="font-family:monospace;font-weight:800;font-size:16px;color:${color}">₪${s.price}</div>
+          <div style="font-size:10px;color:var(--green)">נטו ₪${net}</div>
         </div>
       </div>
-      <div class="card-meta">
-        <span class="meta-chip">📏 ${dist}ק"מ</span>
-        <span class="meta-chip">📅 ${s.date}</span>
-        ${s.offers>0?`<span class="meta-chip">🚛 ${s.offers}</span>`:''}
-        ${hasBid?'<span class="bid-chip">✓ הגשת</span>':''}
+      ${s.description ? `<div style="font-size:11px;color:var(--light);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.8">"${s.description}"</div>` : ''}
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:var(--muted)">📅 ${s.date}</span>
+        ${hasBid
+          ? `<span style="margin-right:auto;background:rgba(34,197,94,.12);color:var(--green);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700">✓ הגשת הצעה</span>`
+          : `<button onclick="event.stopPropagation();openBid(SHIPMENTS.find(x=>x.id==='${s.id}'))"
+              style="margin-right:auto;background:var(--accent);border:none;color:var(--black);border-radius:7px;padding:5px 14px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800;flex-shrink:0">
+              🚛 הגש הצעה
+            </button>`
+        }
       </div>`;
-    div.onclick=()=>selectShipment(s.id);
+    div.onclick = () => selectShipment(s.id);
     list.appendChild(div);
   });
 }
@@ -1766,12 +1846,21 @@ function updateChatBadges() {
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
   const myBadge = document.getElementById('my-unread-badge');
   const myEnvelopeWrap = document.getElementById('my-envelope-wrap');
+  const mineTabBadge = document.getElementById('mine-tab-badge');
   if (myEnvelopeWrap) {
     if (totalUnread > 0) {
       myEnvelopeWrap.style.display = 'inline-block';
       if (myBadge) myBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
     } else {
       myEnvelopeWrap.style.display = 'none';
+    }
+  }
+  if (mineTabBadge) {
+    if (totalUnread > 0) {
+      mineTabBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+      mineTabBadge.style.display = 'inline-flex';
+    } else {
+      mineTabBadge.style.display = 'none';
     }
   }
 
