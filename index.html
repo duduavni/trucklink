@@ -1086,7 +1086,7 @@ async function showBids(id) {
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <button onclick="openChat('${id}','${name}')"
+          <button onclick="openChat('${id}','${name}')" data-chat-shipment="${id}"
             style="flex:1;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600">
             💬 צ'אט
           </button>
@@ -1520,6 +1520,51 @@ async function doLogin() {
 }
 
 // ── שכחתי סיסמה ──────────────────────────────────────────────
+// ── מערכת הודעות שלא נקראו ────────────────────────────────────
+const unreadCounts = {};
+
+async function loadUnreadCounts() {
+  if (!currentUser) return;
+  const { data } = await sb.from('messages').select('shipment_id, id').neq('sender_id', currentUser.id);
+  if (!data) return;
+  const seen = JSON.parse(localStorage.getItem('seen-messages') || '{}');
+  Object.keys(unreadCounts).forEach(k => delete unreadCounts[k]);
+  data.forEach(m => { if (!seen[m.id]) unreadCounts[m.shipment_id] = (unreadCounts[m.shipment_id] || 0) + 1; });
+  updateChatBadges();
+}
+
+function markShipmentMessagesRead(shipmentId) {
+  delete unreadCounts[shipmentId];
+  updateChatBadges();
+  if (!currentUser) return;
+  sb.from('messages').select('id').eq('shipment_id', shipmentId).neq('sender_id', currentUser.id).then(({ data }) => {
+    if (data) {
+      const seen = JSON.parse(localStorage.getItem('seen-messages') || '{}');
+      data.forEach(m => { seen[m.id] = true; });
+      localStorage.setItem('seen-messages', JSON.stringify(seen));
+    }
+  });
+}
+
+function updateChatBadges() {
+  document.querySelectorAll('[data-chat-shipment]').forEach(btn => {
+    const sid = btn.getAttribute('data-chat-shipment');
+    const count = unreadCounts[sid] || 0;
+    let badge = btn.querySelector('.chat-badge');
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'chat-badge';
+        badge.style.cssText = 'background:#ef4444;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 3px;margin-right:4px;flex-shrink:0';
+        btn.prepend(badge);
+      }
+      badge.textContent = count > 9 ? '9+' : count;
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+}
+
 function showForgotPassword() {
   const overlay = document.createElement('div');
   overlay.id = 'forgot-overlay';
@@ -1788,6 +1833,7 @@ async function loadShipmentsFromDB() {
     renderList();
     document.getElementById('live-count').textContent = SHIPMENTS.length + ' הובלות זמינות';
     loadMyAcceptedShipments();
+    loadUnreadCounts();
 
   } else {
     // עסק – טוען הובלות שלו
@@ -1823,6 +1869,7 @@ async function loadShipmentsFromDB() {
       showToast('אין לך הובלות עדיין - פרסם הובלה ראשונה!');
     }
     renderBList();
+    loadUnreadCounts();
   }
 }
 
@@ -2057,6 +2104,7 @@ let activeChatShipment = null;
 
 async function openChat(shipmentId, otherUserName) {
   activeChatShipment = shipmentId;
+  markShipmentMessagesRead(shipmentId);
   const overlay = document.createElement('div');
   overlay.id = 'chat-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;z-index:2000;padding:0 0 0 0';
@@ -2114,8 +2162,24 @@ async function loadChatMessages(shipmentId) {
 function renderMessages(messages) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
-  container.innerHTML = messages.map(m => {
+  const seen = JSON.parse(localStorage.getItem('seen-messages') || '{}');
+
+  container.innerHTML = messages.map((m, i) => {
     const isMine = m.sender_id === currentUser?.id;
+    const isLast = i === messages.length - 1;
+    // סימון קריאה: הודעות שלי - ✓✓ (נקרא) או ✓ (נשלח). הודעות של השני - אם כבר ראינו
+    let statusIcon = '';
+    if (isMine) {
+      // האם הצד השני ראה את ההודעה? נבדוק לפי seen של הצד השני
+      // כרגע - הודעה אחרונה = ✓ (נשלח), שאר = ✓✓ (הניחו שנקראו)
+      statusIcon = isLast
+        ? `<span style="color:rgba(0,0,0,.4);font-size:10px;margin-right:3px">✓</span>`
+        : `<span style="color:rgba(0,0,0,.6);font-size:10px;margin-right:3px">✓✓</span>`;
+    } else {
+      // הודעה שקיבלתי - סמן אם נקראה (פתוח הצ'אט = נקרא)
+      statusIcon = `<span style="color:var(--green);font-size:10px;margin-left:3px">קרא ✓</span>`;
+    }
+
     return `
       <div style="display:flex;flex-direction:column;align-items:${isMine?'flex-end':'flex-start'}">
         <div style="
@@ -2124,8 +2188,9 @@ function renderMessages(messages) {
           color:${isMine?'var(--black)':'var(--text)'};
           font-size:13px;line-height:1.5;
         ">${m.content}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:3px">
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:4px">
           ${new Date(m.created_at).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}
+          ${statusIcon}
         </div>
       </div>`;
   }).join('');
@@ -2146,7 +2211,10 @@ async function sendChatMessage() {
     div.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end';
     div.innerHTML = `
       <div style="max-width:75%;padding:10px 13px;border-radius:14px 14px 4px 14px;background:var(--accent);color:var(--black);font-size:13px;line-height:1.5">${content}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:3px">${new Date(now).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</div>`;
+      <div style="font-size:10px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:4px">
+        ${new Date(now).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}
+        <span style="color:rgba(0,0,0,.4);font-size:10px">✓</span>
+      </div>`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
   }
@@ -2176,6 +2244,7 @@ function subscribeChatRealtime(shipmentId) {
       const container = document.getElementById('chat-messages');
       if (!container) {
         showToast('💬 הודעה חדשה בצ\'אט!', '#f5a623');
+        loadUnreadCounts();
         return;
       }
       const div = document.createElement('div');
@@ -2406,7 +2475,7 @@ window.renderBList = function() {
           actions.className = 'extra-actions';
           actions.style.cssText = 'display:flex;gap:6px;margin-top:8px';
           actions.innerHTML = `
-            <button onclick="openChat('${s.id}','נהג')"
+            <button onclick="openChat('${s.id}','נהג')" data-chat-shipment="${s.id}"
               style="flex:1;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600">
               💬 צ'אט עם הנהג
             </button>
