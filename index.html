@@ -578,7 +578,7 @@ async function renderMyShipments() {
 
   const { data, error } = await sb
     .from('bids')
-    .select('id, price, shipment_id, status, shipments(id, from_city, to_city, title, base_price, weight, pickup_date, description, image_urls, business_id, profiles(full_name, phone))')
+    .select('id, price, shipment_id, status, shipments(id, from_city, to_city, title, base_price, weight, pickup_date, description, image_urls, status, business_id, profiles(full_name, phone))')
     .eq('driver_id', currentUser.id)
     .eq('status', 'accepted');
 
@@ -655,6 +655,9 @@ async function renderMyShipments() {
           📞
         </a>` : ''}
       </div>
+
+      <!-- מעקב סטטוס -->
+      ${renderTrackingBar(b.shipment_id, s.status || 'accepted', true)}
     </div>`;
   }).join('');
 }
@@ -930,11 +933,27 @@ function setBTab(f, btn) {
 }
 
 function getStatusLabel(s) {
-  const map = { open:'⏳ ממתין להצעות', bidding:'💬 יש הצעות', accepted:'✅ נהג נבחר', done:'🏁 הושלם' };
+  const map = {
+    open:       '⏳ ממתין להצעות',
+    bidding:    '💬 יש הצעות',
+    accepted:   '✅ נהג נבחר',
+    pickup:     '📦 באיסוף',
+    on_the_way: '🚛 בדרך',
+    delivered:  '🎉 סופק',
+    done:       '🏁 הושלם'
+  };
   return map[s] || s;
 }
 function getStatusColor(s) {
-  const map = { open:'var(--muted)', bidding:'var(--accent)', accepted:'var(--green)', done:'#5a6478' };
+  const map = {
+    open:       'var(--muted)',
+    bidding:    'var(--accent)',
+    accepted:   'var(--green)',
+    pickup:     '#f59e0b',
+    on_the_way: '#3b82f6',
+    delivered:  '#22c55e',
+    done:       '#5a6478'
+  };
   return map[s] || 'var(--muted)';
 }
 
@@ -963,6 +982,15 @@ function renderBList() {
       </div>
       ${isExpired ? `<div style="margin-top:6px;font-size:11px;color:#fca5a5">⏰ פג תוקף הפרסום (48 שעות) – לא מוצג יותר לנהגים</div>` : ''}
       ${s.driver ? `<div style="margin-top:6px;font-size:11px;color:var(--green)">🚛 ${s.driver}</div>` : ''}
+      ${['accepted','pickup','on_the_way','delivered'].includes(s.status) ? renderTrackingBar(s.id, s.status, false) : ''}
+      ${s.status === 'delivered' && s.delivery_proof_urls?.length ? `
+        <div style="margin-top:8px">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px">📸 אסמכתאות מסירה</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${s.delivery_proof_urls.map(url => `<img src="${url}" onclick="window.open('${url}','_blank')" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--green);cursor:pointer">`).join('')}
+          </div>
+          ${s.delivery_note ? `<div style="font-size:11px;color:var(--light);margin-top:6px;font-style:italic">"${s.delivery_note}"</div>` : ''}
+        </div>` : ''}
       <!-- כפתורי עריכה ומחיקה -->
       <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
         <button onclick="event.stopPropagation();editShipment('${s.id}')"
@@ -1182,6 +1210,47 @@ async function showBids(id) {
     return;
   }
 
+  // בדוק אם כבר נבחר נהג להובלה זו
+  const acceptedBid = data.find(b => b.status === 'accepted');
+
+  if (acceptedBid) {
+    // יש נהג שכבר נבחר - הצג באנר ונעל את שאר הכפתורים
+    const acceptedDriver = acceptedBid.profiles;
+    list.innerHTML = `
+      <div style="background:rgba(34,197,94,.1);border:1px solid var(--green);border-radius:12px;padding:12px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:24px">✅</div>
+        <div>
+          <div style="font-weight:800;font-size:13px;color:var(--green)">נהג נבחר: ${acceptedDriver?.full_name || 'נהג'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">לא ניתן לבחור נהג נוסף להובלה זו</div>
+        </div>
+      </div>` +
+      data.map((bid, i) => {
+        const driver = bid.profiles;
+        const name   = driver?.full_name || 'נהג';
+        const rating = driver?.rating || 4.8;
+        const net    = Math.round(bid.price * 0.91);
+        const isAccepted = bid.status === 'accepted';
+        return `
+        <div style="background:var(--card);border:1px solid ${isAccepted?'var(--green)':'var(--border)'};border-radius:12px;padding:14px;margin-bottom:10px;opacity:${isAccepted?1:0.5}">
+          ${isAccepted?`<div style="font-size:10px;color:var(--green);font-weight:700;margin-bottom:6px">✅ נהג שנבחר</div>`:''}
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:42px;height:42px;background:rgba(245,166,35,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🚛</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:13px">${name}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">⭐${rating} · ${driver?.phone||''}</div>
+              ${bid.note?`<div style="font-size:11px;color:var(--light);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
+            </div>
+            <div style="text-align:left;flex-shrink:0">
+              <div style="font-family:monospace;font-weight:800;font-size:18px;color:var(--accent)">₪${bid.price}</div>
+              <div style="font-size:10px;color:var(--green)">נטו ₪${net}</div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    return;
+  }
+
+  // אין נהג שנבחר - הצג כפתורי בחירה רגיל
   list.innerHTML = data.map((bid, i) => {
     const driver = bid.profiles;
     const name   = driver?.full_name || 'נהג';
@@ -1986,21 +2055,23 @@ async function loadShipmentsFromDB() {
 
     if (!error && data?.length > 0) {
       data.forEach(s => BUSINESS_SHIPMENTS.push({
-        id:          s.id,
-        title:       s.title || `${s.from_city} → ${s.to_city}`,
-        from:        s.from_city,
-        to:          s.to_city,
-        fromLatLng:  cityToLatLng(s.from_city),
-        toLatLng:    cityToLatLng(s.to_city),
-        weight:      s.weight || 0,
-        price:       s.base_price || 0,
-        status:      s.status || 'open',
-        bids:        s.bids?.length || 0,
-        date:        formatDate(s.pickup_date),
-        type:        TYPES[0],
-        description: s.description || '',
-        images:      s.image_urls || [],
-        createdAt:   s.created_at || null,
+        id:                  s.id,
+        title:               s.title || `${s.from_city} → ${s.to_city}`,
+        from:                s.from_city,
+        to:                  s.to_city,
+        fromLatLng:          cityToLatLng(s.from_city),
+        toLatLng:            cityToLatLng(s.to_city),
+        weight:              s.weight || 0,
+        price:               s.base_price || 0,
+        status:              s.status || 'open',
+        bids:                s.bids?.length || 0,
+        date:                formatDate(s.pickup_date),
+        type:                TYPES[0],
+        description:         s.description || '',
+        images:              s.image_urls || [],
+        createdAt:           s.created_at || null,
+        delivery_proof_urls: s.delivery_proof_urls || [],
+        delivery_note:       s.delivery_note || '',
       }));
       showToast(`✅ ${data.length} הובלות נטענו`);
     } else if (!error) {
@@ -2403,6 +2474,191 @@ function closeChat() {
   if (chatSubscription) { chatSubscription.unsubscribe(); chatSubscription=null; }
   activeChatShipment = null;
   document.getElementById('chat-overlay')?.remove();
+}
+
+// ── מעקב סטטוס הובלה ─────────────────────────────────────────
+const DELIVERY_STEPS = [
+  { key: 'accepted',   label: 'נהג נבחר', icon: '✅' },
+  { key: 'pickup',     label: 'באיסוף',   icon: '📦' },
+  { key: 'on_the_way', label: 'בדרך',     icon: '🚛' },
+  { key: 'delivered',  label: 'סופק',     icon: '🎉' },
+];
+
+function getDeliveryStepIndex(status) {
+  return DELIVERY_STEPS.findIndex(s => s.key === status);
+}
+
+function renderTrackingBar(shipmentId, status, isDriver) {
+  const currentIdx = getDeliveryStepIndex(status);
+  if (currentIdx < 0) return '';
+
+  const steps = DELIVERY_STEPS.map((step, i) => {
+    const done    = i < currentIdx;
+    const active  = i === currentIdx;
+    const color   = done ? 'var(--green)' : active ? 'var(--accent)' : 'var(--border)';
+    const textCol = done || active ? 'var(--text)' : 'var(--muted)';
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:3px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${done?'var(--green)':active?'var(--accent)':'var(--card)'};border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s">
+          ${done ? '✓' : step.icon}
+        </div>
+        <div style="font-size:9px;color:${textCol};text-align:center;font-weight:${active?'700':'400'}">${step.label}</div>
+      </div>
+      ${i < DELIVERY_STEPS.length - 1 ? `<div style="flex:1;height:2px;background:${done?'var(--green)':'var(--border)'};margin-top:14px;transition:all .3s"></div>` : ''}`;
+  }).join('');
+
+  // כפתור עדכון סטטוס - רק לנהג, ורק אם לא הושלם
+  let nextBtn = '';
+  if (isDriver && currentIdx < DELIVERY_STEPS.length - 1) {
+    const next = DELIVERY_STEPS[currentIdx + 1];
+    nextBtn = `<button onclick="updateDeliveryStatus('${shipmentId}','${next.key}',this)"
+      style="width:100%;margin-top:10px;background:var(--accent);border:none;color:var(--black);border-radius:9px;padding:9px;cursor:pointer;font-family:inherit;font-weight:800;font-size:12px">
+      ${next.icon} עדכן: ${next.label}
+    </button>`;
+  }
+
+  return `
+    <div style="background:var(--deep);border-radius:10px;padding:12px;margin-top:10px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;font-weight:600">מעקב הובלה</div>
+      <div style="display:flex;align-items:center">${steps}</div>
+      ${nextBtn}
+    </div>`;
+}
+
+async function updateDeliveryStatus(shipmentId, newStatus, btn) {
+  // כשמסמן "סופק" - פתח מסך העלאת תמונות/מסמכים כאסמכתא
+  if (newStatus === 'delivered') {
+    openDeliveryProofModal(shipmentId, btn);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ מעדכן...';
+  const { error } = await sb.from('shipments').update({ status: newStatus }).eq('id', shipmentId);
+  if (error) {
+    showToast('שגיאה בעדכון סטטוס: ' + error.message, '#ef4444');
+    btn.disabled = false;
+    btn.textContent = 'נסה שוב';
+    return;
+  }
+  showToast(`✅ סטטוס עודכן: ${getStatusLabel(newStatus)}`);
+  loadShipmentsFromDB();
+  renderMyShipments();
+}
+
+function openDeliveryProofModal(shipmentId, triggerBtn) {
+  const overlay = document.createElement('div');
+  overlay.id = 'proof-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;z-index:9999;padding:0';
+  overlay.innerHTML = `
+    <div style="background:var(--deep);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:20px;padding-bottom:env(safe-area-inset-bottom,16px)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <div style="font-weight:800;font-size:17px">📸 אסמכתא למסירה</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">צרף תמונה/מסמך כהוכחה שההובלה בוצעה</div>
+        </div>
+        <button onclick="document.getElementById('proof-overlay').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit">✕</button>
+      </div>
+
+      <!-- אזור העלאה -->
+      <div id="proof-drop-zone" onclick="document.getElementById('proof-file-input').click()"
+        style="border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;margin-bottom:14px;transition:all .2s"
+        ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+        ondragleave="this.style.borderColor='var(--border)'"
+        ondrop="event.preventDefault();this.style.borderColor='var(--border)';handleProofFiles(event.dataTransfer.files,this)">
+        <div style="font-size:36px;margin-bottom:8px">📁</div>
+        <div style="font-weight:700;font-size:13px">לחץ להעלאת קבצים</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">תמונות, PDF, מסמכים - עד 5 קבצים</div>
+        <input type="file" id="proof-file-input" multiple accept="image/*,.pdf,.doc,.docx" style="display:none"
+          onchange="handleProofFiles(this.files, document.getElementById('proof-drop-zone'))">
+      </div>
+
+      <!-- תצוגה מקדימה -->
+      <div id="proof-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+
+      <!-- הערה אופציונלית -->
+      <textarea id="proof-note" placeholder="הערה למוביל (אופציונלי) - למשל: 'נמסר לידי יוסי, חתמה על קבלה'" rows="2" dir="rtl"
+        style="width:100%;padding:10px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:inherit;resize:none;margin-bottom:12px;box-sizing:border-box"></textarea>
+
+      <div style="display:flex;gap:8px">
+        <button onclick="submitDeliveryProof('${shipmentId}')"
+          style="flex:2;background:var(--green);border:none;color:var(--black);border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px">
+          🎉 אשר מסירה
+        </button>
+        <button onclick="confirmDeliveredWithoutProof('${shipmentId}')"
+          style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-size:12px">
+          ללא תמונה
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+let proofFiles = [];
+
+function handleProofFiles(files, zone) {
+  proofFiles = [...proofFiles, ...Array.from(files)].slice(0, 5);
+  const preview = document.getElementById('proof-preview');
+  if (!preview) return;
+  preview.innerHTML = proofFiles.map((f, i) => {
+    const isImg = f.type.startsWith('image/');
+    const iconEl = isImg
+      ? `<img src="${URL.createObjectURL(f)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px">`
+      : `<div style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:28px">${f.name.endsWith('.pdf')?'📄':'📃'}</div>`;
+    return `<div style="position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:64px;height:64px;display:flex;align-items:center;justify-content:center;background:var(--card)">
+      ${iconEl}
+      <button onclick="proofFiles.splice(${i},1);handleProofFiles([],document.getElementById('proof-drop-zone'))"
+        style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>`;
+  }).join('');
+  if (zone) zone.querySelector('div:nth-child(2)').textContent = `${proofFiles.length} קבצים נבחרו · לחץ להוספה`;
+}
+
+async function submitDeliveryProof(shipmentId) {
+  const btn = document.querySelector('#proof-overlay button[onclick*="submitDeliveryProof"]');
+  if (btn) { btn.disabled = true; btn.textContent = '📤 מעלה...'; }
+
+  let proofUrls = [];
+
+  // העלה קבצים ל-Supabase Storage
+  for (let i = 0; i < proofFiles.length; i++) {
+    const file = proofFiles[i];
+    const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const path = `proofs/${shipmentId}/${Date.now()}_${i}_${safeName}`;
+    const { error: upErr } = await sb.storage.from('shipment-images').upload(path, file);
+    if (!upErr) {
+      const { data: pub } = sb.storage.from('shipment-images').getPublicUrl(path);
+      if (pub?.publicUrl) proofUrls.push(pub.publicUrl);
+    }
+  }
+
+  const note = document.getElementById('proof-note')?.value || '';
+
+  // שמור אסמכתאות + עדכן סטטוס
+  const { error } = await sb.from('shipments').update({
+    status: 'delivered',
+    delivery_proof_urls: proofUrls,
+    delivery_note: note || null,
+  }).eq('id', shipmentId);
+
+  document.getElementById('proof-overlay')?.remove();
+  proofFiles = [];
+
+  if (error) { showToast('שגיאה: ' + error.message, '#ef4444'); return; }
+
+  showToast('🎉 מסירה אושרה! האסמכתאות נשמרו');
+  loadShipmentsFromDB();
+  renderMyShipments();
+}
+
+async function confirmDeliveredWithoutProof(shipmentId) {
+  const { error } = await sb.from('shipments').update({ status: 'delivered' }).eq('id', shipmentId);
+  document.getElementById('proof-overlay')?.remove();
+  proofFiles = [];
+  if (error) { showToast('שגיאה: ' + error.message, '#ef4444'); return; }
+  showToast('🎉 הובלה סומנה כסופקה');
+  loadShipmentsFromDB();
+  renderMyShipments();
 }
 
 // ══════════════════════════════════════════════════════════════
