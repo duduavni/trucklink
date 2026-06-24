@@ -1376,7 +1376,11 @@ async function loadProfile() {
   document.getElementById('mode-switcher')?.style.setProperty('display', 'none');
   // Update mode based on role
   if (data?.role === 'business') setMode('business');
-  else setMode('driver');
+  else {
+    setMode('driver');
+    // טען באנרים של הובלות שהנהג נבחר לבצע (גם אם פספס את האירוע)
+    loadMyAcceptedShipments();
+  }
 }
 
 // ── עדכון כפתור המשתמש בטופבר (שם + קטגוריה) ───────────────────
