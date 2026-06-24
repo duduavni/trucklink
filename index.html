@@ -1101,12 +1101,15 @@ async function showBids(id) {
 
 async function acceptBid(bidId, shipmentId, driverName, price, btn) {
   btn.textContent = 'מאשר...'; btn.disabled = true;
+  console.log('acceptBid called with bidId:', bidId, 'shipmentId:', shipmentId);
 
   // עדכן סטטוס ההצעה
-  await sb.from('bids').update({ status:'accepted' }).eq('id', bidId);
+  const { error: bidErr } = await sb.from('bids').update({ status:'accepted' }).eq('id', bidId);
+  if (bidErr) { console.error('שגיאה בעדכון bid:', bidErr); showToast('שגיאה: '+bidErr.message, '#ef4444'); btn.textContent='בחר נהג זה'; btn.disabled=false; return; }
 
   // עדכן סטטוס ההובלה
-  await sb.from('shipments').update({ status:'accepted' }).eq('id', shipmentId);
+  const { error: shipErr } = await sb.from('shipments').update({ status:'accepted' }).eq('id', shipmentId);
+  if (shipErr) { console.error('שגיאה בעדכון shipment:', shipErr); }
 
   btn.closest('[style*=fixed]').innerHTML = `
     <div style="text-align:center;padding:24px">
