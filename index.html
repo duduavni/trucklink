@@ -174,6 +174,10 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
       <button class="filter-btn" onclick="setFilter('south',this)">🏜️ דרום</button>
       <button class="filter-btn" onclick="setFilter('near',this)">📍 קצר</button>
       <button class="filter-btn" onclick="setFilter('urgent',this)">🔥 דחוף</button>
+      <button class="filter-btn" id="my-shipments-btn" onclick="setFilter('mine',this)" style="position:relative">
+        🚛 ההובלות שלי
+        <span id="my-unread-badge" style="display:none;position:absolute;top:-4px;left:-4px;background:#ef4444;color:#fff;border-radius:50%;min-width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;padding:0 2px"></span>
+      </button>
     </div>
 
     <!-- RADIUS FILTER -->
@@ -213,6 +217,9 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
     </div>
     <div id="list-header"><span id="list-count"></span><span style="color:var(--accent)">לפי מחיר ↓</span></div>
     <div id="list"></div>
+
+    <!-- לשונית ההובלות שלי -->
+    <div id="my-shipments-tab" style="display:none;flex:1;overflow-y:auto;padding:10px 12px"></div>
   </div>
 
   <!-- BUSINESS VIEW -->
@@ -535,11 +542,72 @@ function closeRoute() { selectShipment(selectedId); }
 
 // ── Filter ──
 function setFilter(f, btn) {
-  currentFilter=f;
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderMarkers();
-  renderList();
+
+  const listEl    = document.getElementById('list');
+  const headerEl  = document.getElementById('list-header');
+  const mineEl    = document.getElementById('my-shipments-tab');
+
+  if (f === 'mine') {
+    // הצג לשונית "ההובלות שלי"
+    if (listEl)   listEl.style.display   = 'none';
+    if (headerEl) headerEl.style.display = 'none';
+    if (mineEl)   mineEl.style.display   = 'block';
+    renderMyShipments();
+  } else {
+    if (listEl)   listEl.style.display   = '';
+    if (headerEl) headerEl.style.display = '';
+    if (mineEl)   mineEl.style.display   = 'none';
+    renderMarkers();
+    renderList();
+  }
+}
+
+async function renderMyShipments() {
+  const container = document.getElementById('my-shipments-tab');
+  if (!container || !currentUser) return;
+  container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">⏳ טוען...</div>';
+
+  const { data, error } = await sb
+    .from('bids')
+    .select('id, price, shipment_id, status, shipments(from_city, to_city, title, base_price, business_id, profiles(full_name))')
+    .eq('driver_id', currentUser.id)
+    .eq('status', 'accepted');
+
+  if (error || !data || !data.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">אין הובלות שנבחרת לבצע עדיין</div>';
+    return;
+  }
+
+  container.innerHTML = data.map(b => {
+    const s = b.shipments || {};
+    const businessName = s.profiles?.full_name || 'עסק';
+    const unread = unreadCounts[b.shipment_id] || 0;
+    const badgeHtml = unread > 0
+      ? `<span style="background:#ef4444;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 3px">${unread > 9 ? '9+' : unread}</span>`
+      : '';
+    return `
+    <div style="background:var(--card);border:1px solid var(--green);border-radius:13px;padding:13px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-weight:800;font-size:13px">🚛 ${s.from_city||''} → ${s.to_city||''}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${businessName}</div>
+        </div>
+        <div style="text-align:left">
+          <div style="font-family:monospace;font-weight:800;font-size:14px;color:var(--green)">₪${b.price}</div>
+          <div style="font-size:10px;color:var(--muted)">הצעתך</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button data-chat-shipment="${b.shipment_id}" onclick="openChatFromBanner(this)" data-shipment-id="${b.shipment_id}" data-business-name="${businessName.replace(/"/g,'&quot;')}"
+          style="flex:1;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
+          ${badgeHtml} 💬 צ'אט עם ${businessName}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function getFiltered() {
@@ -1563,6 +1631,22 @@ function updateChatBadges() {
       badge.remove();
     }
   });
+
+  // עדכן badge על כפתור "ההובלות שלי"
+  const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+  const myBadge = document.getElementById('my-unread-badge');
+  if (myBadge) {
+    if (totalUnread > 0) {
+      myBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+      myBadge.style.display = 'inline-flex';
+    } else {
+      myBadge.style.display = 'none';
+    }
+  }
+
+  // אם לשונית "ההובלות שלי" פתוחה - רענן אותה
+  const mineEl = document.getElementById('my-shipments-tab');
+  if (mineEl && mineEl.style.display !== 'none') renderMyShipments();
 }
 
 function showForgotPassword() {
