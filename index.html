@@ -105,8 +105,9 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   #sidebar { width:100%; height:45vh; flex-direction:column; }
   #main { flex-direction:column; }
   #map-wrap { height:100%; width:100%; }
-  #sidebar { width:100%; height:55vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; }
-  #list { max-height:calc(55vh - 140px); }
+  #sidebar { width:100%; height:58vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; }
+  #list { max-height:calc(58vh - 160px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  #my-shipments-tab { max-height:calc(58vh - 160px); }
 }
 </style>
 </head>
@@ -150,7 +151,8 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
         <div class="ri-stat"><div class="ri-stat-icon">⚖️</div><div class="ri-stat-val" id="ri-weight"></div></div>
         <div class="ri-stat"><div class="ri-stat-icon">📅</div><div class="ri-stat-val" id="ri-date"></div></div>
       </div>
-      <div id="ri-desc" style="display:none;font-size:12px;color:var(--light);line-height:1.5;padding:8px 0;border-top:1px solid var(--border);margin-top:2px"></div>
+      <div id="ri-desc" style="display:none;font-size:12px;color:var(--light);line-height:1.5;padding:8px 0;border-top:1px solid rgba(255,255,255,.1);margin-top:2px"></div>
+      <div id="ri-note" style="display:none;font-size:11px;color:var(--accent);line-height:1.5;padding:6px 8px;background:rgba(245,166,35,.08);border-radius:8px;margin-top:4px;border:1px solid rgba(245,166,35,.2)"></div>
       <div id="ri-images" style="display:none;gap:6px;overflow-x:auto;padding:2px 0 6px"></div>
       <div class="ri-earn">
         <span class="ri-earn-label">הכנסה נטו (92%)</span>
@@ -531,8 +533,12 @@ function selectShipment(id) {
   document.getElementById('ri-net').textContent='₪'+Math.round(s.price*.92);
 
   const descEl=document.getElementById('ri-desc');
-  if (s.description) { descEl.textContent=s.description; descEl.style.display='block'; }
+  if (s.description) { descEl.innerHTML='📝 '+s.description; descEl.style.display='block'; }
   else { descEl.style.display='none'; }
+
+  const noteEl=document.getElementById('ri-note');
+  if (s.driver_note) { noteEl.innerHTML='💬 הערה לנהג: '+s.driver_note; noteEl.style.display='block'; }
+  else { noteEl.style.display='none'; }
 
   const imgsEl=document.getElementById('ri-images');
   if (s.images && s.images.length) {
@@ -1390,6 +1396,7 @@ async function acceptBid(bidId, shipmentId, driverName, price, btn) {
 
 // New shipment modal
 function openNewShipment() {
+  const today = new Date().toISOString().split('T')[0];
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px;overflow-y:auto';
   overlay.innerHTML = `
@@ -1425,7 +1432,13 @@ function openNewShipment() {
         </div>
         <div style="flex:1">
           <div style="font-size:12px;color:var(--light);margin-bottom:5px">📅 תאריך</div>
-          <input id="ns-date" placeholder="היום / מחר..." style="${INP}">
+          <input id="ns-date" type="date" style="${INP}">
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <button type="button" onclick="document.getElementById('ns-date').value=new Date().toISOString().split('T')[0]"
+              style="flex:1;background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3);color:var(--accent);border-radius:6px;padding:4px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700">היום</button>
+            <button type="button" onclick="let t=new Date();t.setDate(t.getDate()+1);document.getElementById('ns-date').value=t.toISOString().split('T')[0]"
+              style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px;cursor:pointer;font-family:inherit;font-size:10px">מחר</button>
+          </div>
         </div>
         <div style="flex:1">
           <div style="font-size:12px;color:var(--light);margin-bottom:5px">₪ מחיר בסיס</div>
@@ -1481,6 +1494,9 @@ function openNewShipment() {
     </div>`;
   overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
   document.body.appendChild(overlay);
+  // ברירת מחדל: תאריך היום
+  const dateInput = document.getElementById('ns-date');
+  if (dateInput) { dateInput.value = today; dateInput.min = today; }
 }
 
 const INP = 'width:100%;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:inherit;direction:rtl';
@@ -2133,6 +2149,7 @@ async function loadShipmentsFromDB() {
         offers:  0,
         title:   s.title || `${s.from_city} → ${s.to_city}`,
         description: s.description || '',
+        driver_note: s.driver_note || '',
         images:  s.image_urls || [],
       }));
 
