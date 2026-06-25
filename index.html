@@ -29,10 +29,10 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 .dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
 
 /* LAYOUT */
-#main { flex:1; display:flex; overflow:hidden; }
+#main { flex:1; display:flex; overflow:hidden; position:relative; }
 
 /* MAP */
-#map-wrap { flex:1; position:relative; }
+#map-wrap { flex:1; position:relative; width:100%; }
 #map { width:100%; height:100%; background:#060d18 !important; }
 .leaflet-container { background:#060d18 !important; }
 .leaflet-control-zoom a { background:#151920!important; color:#8b95a8!important; border-color:#1e2330!important; }
@@ -48,20 +48,20 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 #hint { position:absolute; bottom:16px; right:12px; z-index:500; background:rgba(8,10,18,.85); border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:11px; color:var(--muted); }
 
 /* SIDEBAR */
-#sidebar { width:300px; background:var(--deep); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; }
-#earnings { padding:10px 14px; border-bottom:1px solid var(--border); background:rgba(245,166,35,.04); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+#sidebar { width:300px; background:transparent; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; position:absolute; right:0; top:0; bottom:0; z-index:400; pointer-events:none; }
+#earnings { padding:10px 14px; border-bottom:1px solid rgba(255,255,255,.08); background:rgba(8,9,20,.88); backdrop-filter:blur(12px); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; pointer-events:all; }
 .earn-item .label { font-size:10px; color:var(--muted); }
 .earn-item .val { font-family:monospace; font-weight:800; font-size:17px; color:var(--accent); }
 .earn-item .val2 { font-family:monospace; font-weight:700; font-size:15px; }
 .earn-item .val3 { font-weight:700; font-size:13px; color:var(--accent); }
-#filters { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; gap:5px; flex-wrap:wrap; flex-shrink:0; }
+#filters { padding:8px 12px; border-bottom:1px solid rgba(255,255,255,.08); background:rgba(8,9,20,.88); backdrop-filter:blur(12px); display:flex; gap:5px; flex-wrap:wrap; flex-shrink:0; pointer-events:all; }
 .filter-btn { padding:4px 9px; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:inherit; font-size:11px; font-weight:600; cursor:pointer; transition:all .18s; }
 .filter-btn.active { border-color:var(--accent); background:rgba(245,166,35,.12); color:var(--accent); }
-#list-header { padding:6px 12px 0; display:flex; justify-content:space-between; font-size:11px; color:var(--muted); flex-shrink:0; }
-#list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:6px 12px 12px; display:flex; flex-direction:column; gap:6px; min-height:0; }
-.ship-card { background:var(--card); border:1px solid var(--border); border-radius:11px; padding:9px 11px; cursor:pointer; transition:all .18s; position:relative; overflow:hidden; }
-.ship-card:hover, .ship-card.hovered { border-color:rgba(245,166,35,.35); }
-.ship-card.selected { background:rgba(22,30,46,.9); }
+#list-header { padding:6px 12px 0; display:flex; justify-content:space-between; font-size:11px; color:var(--muted); flex-shrink:0; background:rgba(8,9,20,.75); backdrop-filter:blur(8px); pointer-events:all; }
+#list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:6px 8px 12px; display:flex; flex-direction:column; gap:6px; min-height:0; pointer-events:all; }
+.ship-card { background:rgba(21,25,40,.82); border:1px solid var(--border); border-radius:11px; padding:9px 11px; cursor:pointer; transition:all .18s; position:relative; overflow:hidden; backdrop-filter:blur(10px); }
+.ship-card:hover, .ship-card.hovered { border-color:rgba(245,166,35,.45); background:rgba(21,25,40,.95); }
+.ship-card.selected { background:rgba(22,30,46,.95); }
 .ship-card .urgent-badge { position:absolute; top:0; left:0; background:var(--red); color:#fff; font-size:8px; font-weight:800; padding:2px 6px; border-radius:11px 0 7px 0; }
 .card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:5px; }
 .card-route { font-weight:700; font-size:12px; }
@@ -104,7 +104,9 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 @media (max-width:600px) {
   #sidebar { width:100%; height:45vh; flex-direction:column; }
   #main { flex-direction:column; }
-  #map-wrap { height:55vh; }
+  #map-wrap { height:100%; width:100%; }
+  #sidebar { width:100%; height:55vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; }
+  #list { max-height:calc(55vh - 140px); }
 }
 </style>
 </head>
@@ -186,7 +188,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
     </div>
 
     <!-- TABS: הכל / מסביבי / ההובלות שלי -->
-    <div style="display:flex;border-bottom:1px solid var(--border);flex-shrink:0">
+    <div style="display:flex;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;background:rgba(8,9,20,.88);backdrop-filter:blur(12px);pointer-events:all">
       <button id="tab-all" onclick="switchTab('all')"
         style="flex:1;padding:10px 4px;border:none;border-bottom:2px solid var(--accent);background:transparent;color:var(--accent);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
         🗺️ כל ההובלות
@@ -203,7 +205,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
     </div>
 
     <!-- NEAR ME PANEL (hidden by default) -->
-    <div id="near-panel" style="display:none;padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(245,166,35,.03);flex-shrink:0">
+    <div id="near-panel" style="display:none;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(8,9,20,.88);backdrop-filter:blur(12px);flex-shrink:0;pointer-events:all">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:6px">
           <span id="radius-badge" style="font-size:10px;background:rgba(245,166,35,.15);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:700;display:none"></span>
@@ -235,7 +237,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
     </div>
 
     <!-- REGION FILTER CHIPS -->
-    <div id="region-chips" style="padding:8px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0">
+    <div id="region-chips" style="padding:8px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;background:rgba(8,9,20,.75);backdrop-filter:blur(8px);pointer-events:all">
       <button class="filter-btn active" onclick="setFilter('all',this)">הכל</button>
       <button class="filter-btn" onclick="setFilter('north',this)">🌿 צפון</button>
       <button class="filter-btn" onclick="setFilter('center',this)">🏙️ מרכז</button>
@@ -252,9 +254,9 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   <!-- BUSINESS VIEW -->
   <div id="business-view" style="display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0">
     <!-- Business sidebar -->
-    <div style="width:320px;background:var(--deep);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0">
+    <div style="width:320px;background:var(--deep);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;height:100%">
       <!-- Stats -->
-      <div style="padding:14px;border-bottom:1px solid var(--border);background:rgba(245,166,35,.04)">
+      <div style="padding:14px;border-bottom:1px solid var(--border);background:rgba(245,166,35,.04);flex-shrink:0">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div style="font-weight:800;font-size:15px">ההובלות שלי</div>
           <button onclick="openNewShipment()" style="background:var(--accent);border:none;color:var(--black);border-radius:9px;padding:8px 14px;cursor:pointer;font-family:inherit;font-weight:800;font-size:12px">+ הובלה חדשה</button>
@@ -278,14 +280,14 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
         </div>
       </div>
       <!-- Tabs -->
-      <div style="display:flex;gap:0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0">
         <button class="b-tab active-tab" onclick="setBTab('all',this)" style="flex:1;padding:10px;border:none;background:transparent;color:var(--accent);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--accent)">הכל</button>
         <button class="b-tab" onclick="setBTab('open',this)" style="flex:1;padding:10px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent">פתוחות</button>
         <button class="b-tab" onclick="setBTab('bidding',this)" style="flex:1;padding:10px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent">הצעות</button>
         <button class="b-tab" onclick="setBTab('done',this)" style="flex:1;padding:10px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent">הושלם</button>
       </div>
-      <!-- Business shipments list -->
-      <div id="b-list" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:0"></div>
+      <!-- Business shipments list - גלילה מלאה -->
+      <div id="b-list" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:0;max-height:calc(100vh - 220px)"></div>
     </div>
 
     <!-- Business map -->
