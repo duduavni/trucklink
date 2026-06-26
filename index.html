@@ -44,7 +44,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 .tl-popup .leaflet-popup-tip-container { display:none!important; }
 
 /* MAP OVERLAYS */
-#route-info { position:absolute; top:12px; right:12px; z-index:500; background:rgba(9,12,20,.55); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:12px 14px; min-width:220px; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); display:none; animation:fadeUp .2s ease both; box-shadow:0 8px 32px rgba(0,0,0,.35); }
+#route-info { position:absolute; top:12px; right:12px; z-index:500; background:rgba(9,12,20,.32); border:1px solid rgba(255,255,255,.18); border-radius:16px; padding:12px 14px; min-width:220px; backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); display:none; animation:fadeUp .2s ease both; box-shadow:0 8px 32px rgba(0,0,0,.25); }
 #hint { position:absolute; bottom:16px; right:12px; z-index:500; background:rgba(8,10,18,.85); border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:11px; color:var(--muted); }
 
 /* SIDEBAR */
@@ -105,9 +105,9 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   #sidebar { width:100%; height:45vh; flex-direction:column; }
   #main { flex-direction:column; }
   #map-wrap { height:100%; width:100%; }
-  #sidebar { width:100%; height:58vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; }
-  #list { max-height:calc(58vh - 160px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
-  #my-shipments-tab { max-height:calc(58vh - 160px); }
+  #sidebar { width:100%; height:58vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; overflow:hidden; display:flex; flex-direction:column; }
+  #list { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; max-height:none !important; }
+  #my-shipments-tab { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; max-height:none !important; }
 }
 </style>
 </head>
@@ -250,7 +250,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 
     <div id="list-header"><span id="list-count"></span><span style="color:var(--accent)">לפי מחיר ↓</span></div>
     <div id="list"></div>
-    <div id="my-shipments-tab" style="display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px;min-height:0"></div>
+    <div id="my-shipments-tab" style="display:none;flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 10px 60px;min-height:0;width:100%"></div>
   </div>
 
   <!-- BUSINESS VIEW -->
@@ -664,65 +664,42 @@ async function renderMyShipments() {
     const badgeHtml = unread > 0
       ? `<span style="background:#ef4444;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 3px">${unread > 9 ? '9+' : unread}</span>`
       : '';
+
     const imagesHtml = s.image_urls?.length
-      ? `<div style="display:flex;gap:6px;overflow-x:auto;padding:4px 0;margin-top:8px">
-          ${s.image_urls.map(url => `<img src="${url}" onclick="window.open('${url}','_blank')" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex-shrink:0;cursor:pointer">`).join('')}
+      ? `<div style="display:flex;gap:4px;overflow-x:auto;margin-top:6px">
+          ${s.image_urls.map(url => `<img src="${url}" onclick="window.open('${url}','_blank')" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;cursor:pointer">`).join('')}
         </div>` : '';
 
     return `
-    <div style="background:var(--card);border:1px solid var(--green);border-radius:13px;padding:14px;margin-bottom:12px">
+    <div style="background:rgba(21,25,40,.85);border:1px solid rgba(34,197,94,.4);border-radius:12px;padding:11px;margin-bottom:8px;backdrop-filter:blur(10px)">
 
-      <!-- כותרת -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <div>
-          <div style="font-weight:800;font-size:14px">🚛 ${s.from_city||''} → ${s.to_city||''}</div>
-          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px">✅ נבחרת לבצע הובלה זו</div>
-        </div>
-        <div style="text-align:left">
-          <div style="font-family:monospace;font-weight:800;font-size:16px;color:var(--accent)">₪${b.price}</div>
-          <div style="font-size:10px;color:var(--muted)">הצעתך</div>
-        </div>
+      <!-- שורה ראשית -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:800;font-size:13px">🚛 ${s.from_city||''} → ${s.to_city||''}</div>
+        <div style="font-family:monospace;font-weight:800;font-size:15px;color:var(--accent)">₪${b.price}</div>
       </div>
 
-      <!-- פרטי הובלה -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-        ${s.weight ? `<div style="background:var(--deep);border-radius:8px;padding:7px 10px">
-          <div style="font-size:10px;color:var(--muted)">משקל</div>
-          <div style="font-size:13px;font-weight:700">⚖️ ${s.weight} ק"ג</div>
-        </div>` : ''}
-        ${s.base_price ? `<div style="background:var(--deep);border-radius:8px;padding:7px 10px">
-          <div style="font-size:10px;color:var(--muted)">מחיר מבוקש</div>
-          <div style="font-size:13px;font-weight:700">💰 ₪${s.base_price}</div>
-        </div>` : ''}
-        ${s.pickup_date ? `<div style="background:var(--deep);border-radius:8px;padding:7px 10px">
-          <div style="font-size:10px;color:var(--muted)">תאריך איסוף</div>
-          <div style="font-size:13px;font-weight:700">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</div>
-        </div>` : ''}
-        <div style="background:var(--deep);border-radius:8px;padding:7px 10px">
-          <div style="font-size:10px;color:var(--muted)">שם העסק</div>
-          <div style="font-size:13px;font-weight:700">🏢 ${businessName}</div>
-        </div>
+      <!-- פרטים בשורה אחת -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${s.weight ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">⚖️ ${s.weight}ק"ג</span>` : ''}
+        ${s.pickup_date ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
+        <span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">🏢 ${businessName}</span>
       </div>
 
-      <!-- תיאור -->
-      ${s.description ? `<div style="background:var(--deep);border-radius:8px;padding:8px 10px;margin-bottom:8px">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">📝 תיאור המוצר</div>
-        <div style="font-size:12px;color:var(--light);line-height:1.5">${s.description}</div>
-      </div>` : ''}
+      <!-- תיאור (אם יש) -->
+      ${s.description ? `<div style="font-size:11px;color:var(--light);margin-bottom:6px;padding:5px 8px;background:rgba(255,255,255,.04);border-radius:7px">📝 ${s.description}</div>` : ''}
 
       <!-- תמונות -->
       ${imagesHtml}
 
-      <!-- כפתורים -->
-      <div style="display:flex;gap:6px;margin-top:10px">
+      <!-- כפתורי פעולה -->
+      <div style="display:flex;gap:6px;margin-top:8px">
         <button data-chat-shipment="${b.shipment_id}" onclick="openChatFromBanner(this)" data-shipment-id="${b.shipment_id}" data-business-name="${businessName.replace(/"/g,'&quot;')}"
-          style="flex:1;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:9px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px">
-          ${badgeHtml} 💬 צ'אט עם ${businessName}
+          style="flex:1;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
+          ${badgeHtml} 💬 צ'אט
         </button>
         ${businessPhone ? `<a href="tel:${businessPhone}"
-          style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:9px 12px;cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;text-decoration:none">
-          📞
-        </a>` : ''}
+          style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
       </div>
 
       <!-- מעקב סטטוס -->
@@ -2653,8 +2630,8 @@ function renderTrackingBar(shipmentId, status, isDriver) {
   }
 
   return `
-    <div style="background:var(--deep);border-radius:10px;padding:12px;margin-top:10px">
-      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;font-weight:600">מעקב הובלה</div>
+    <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;margin-top:8px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600">מעקב הובלה</div>
       <div style="display:flex;align-items:center">${steps}</div>
       ${nextBtn}
     </div>`;
