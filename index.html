@@ -141,7 +141,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
         <span class="ri-type" id="ri-type"></span>
         <button class="ri-close" onclick="closeRoute()">✕</button>
       </div>
-      <div class="ri-route">
+      <div class="ri-route" style="direction:ltr">
         <div class="ri-city"><div class="ri-city-label">מוצא</div><div class="ri-city-name" id="ri-from"></div></div>
         <div class="ri-arrow" id="ri-arrow">→</div>
         <div class="ri-city"><div class="ri-city-label">יעד</div><div class="ri-city-name" id="ri-to"></div></div>
@@ -311,9 +311,13 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
       <button onclick="closeBid()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
     </div>
     <div id="bid-route-card" style="border-radius:13px;padding:14px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;direction:ltr">
         <div style="flex:1;text-align:center"><div style="color:var(--muted);font-size:10px;margin-bottom:2px">מוצא</div><div id="bid-from" style="font-weight:800;font-size:14px"></div></div>
-        <div style="text-align:center"><div id="bid-truck" style="font-size:18px">🚛</div><div id="bid-km" style="font-size:10px;color:var(--muted);font-family:monospace"></div></div>
+        <div style="text-align:center;flex-shrink:0">
+          <div id="bid-truck" style="font-size:18px">🚛</div>
+          <div style="font-size:10px;color:var(--muted)">→</div>
+          <div id="bid-km" style="font-size:10px;color:var(--muted);font-family:monospace"></div>
+        </div>
         <div style="flex:1;text-align:center"><div style="color:var(--muted);font-size:10px;margin-bottom:2px">יעד</div><div id="bid-to" style="font-weight:800;font-size:14px"></div></div>
       </div>
       <div id="bid-desc" style="display:none;font-size:11px;color:var(--light);line-height:1.5;padding-top:8px;border-top:1px solid var(--border)"></div>
