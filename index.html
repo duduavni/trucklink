@@ -132,8 +132,8 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   <div id="map-wrap">
     <div id="map"></div>
 
-    <!-- באנר "נבחרת!" קבוע לנהג שנבחר לבצע הובלה -->
-    <div id="accepted-banner" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:700;display:flex;flex-direction:column;gap:8px;width:min(380px,calc(100% - 32px))"></div>
+    <!-- באנר "נבחרת!" - מוצג בתחתית המפה כדי לא לחסום כפתורי זום -->
+    <div id="accepted-banner" style="position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:700;display:flex;flex-direction:column;gap:8px;width:min(380px,calc(100% - 32px))"></div>
 
     <!-- Route overlay -->
     <div id="route-info">
@@ -667,7 +667,7 @@ async function renderMyShipments() {
     return;
   }
 
-  container.innerHTML = data.map(b => {
+  container.innerHTML = data.map((b, idx) => {
     const s = b.shipments || {};
     const businessName = s.profiles?.full_name || 'עסק';
     const businessPhone = s.profiles?.phone || '';
@@ -675,48 +675,53 @@ async function renderMyShipments() {
     const badgeHtml = unread > 0
       ? `<span style="background:#ef4444;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 3px">${unread > 9 ? '9+' : unread}</span>`
       : '';
-
     const imagesHtml = s.image_urls?.length
       ? `<div style="display:flex;gap:4px;overflow-x:auto;margin-top:6px">
           ${s.image_urls.map(url => `<img src="${url}" onclick="window.open('${url}','_blank')" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;cursor:pointer">`).join('')}
         </div>` : '';
-
+    const statusColor = getStatusColor(s.status || 'accepted');
     return `
-    <div style="background:rgba(21,25,40,.85);border:1px solid rgba(34,197,94,.4);border-radius:12px;padding:11px;margin-bottom:8px;backdrop-filter:blur(10px)">
-
-      <!-- שורה ראשית -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-weight:800;font-size:13px;direction:ltr;text-align:right">🚛 ${s.from_city||''} → ${s.to_city||''}</div>
-        <div style="font-family:monospace;font-weight:800;font-size:15px;color:var(--accent)">₪${b.price}</div>
+    <div style="background:rgba(21,25,40,.85);border:1px solid rgba(34,197,94,.35);border-radius:12px;overflow:hidden;margin-bottom:8px;backdrop-filter:blur(10px)">
+      <div onclick="toggleMyShipment('ms-${idx}')" style="padding:11px 12px;display:flex;align-items:center;gap:8px;cursor:pointer">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;font-size:13px;direction:ltr;text-align:right">${s.from_city||''} → ${s.to_city||''}</div>
+          <div style="font-size:10px;color:${statusColor};margin-top:2px">${getStatusLabel(s.status||'accepted')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          ${badgeHtml}
+          <div style="font-family:monospace;font-weight:800;font-size:14px;color:var(--accent)">₪${b.price}</div>
+          <span id="ms-arrow-${idx}" style="color:var(--muted);font-size:11px">▼</span>
+        </div>
       </div>
-
-      <!-- פרטים בשורה אחת -->
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-        ${s.weight ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">⚖️ ${s.weight}ק"ג</span>` : ''}
-        ${s.pickup_date ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
-        <span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">🏢 עסק מאומת ✓</span>
+      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid rgba(255,255,255,.06)">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+          ${s.weight ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">⚖️ ${s.weight}ק"ג</span>` : ''}
+          ${s.pickup_date ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
+          <span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">🏢 עסק מאומת ✓</span>
+        </div>
+        ${s.description ? `<div style="font-size:11px;color:var(--light);margin-bottom:8px;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:7px">📝 ${s.description}</div>` : ''}
+        ${imagesHtml}
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button data-chat-shipment="${b.shipment_id}" onclick="openChatFromBanner(this)" data-shipment-id="${b.shipment_id}" data-business-name="${businessName.replace(/"/g,'&quot;')}"
+            style="flex:1;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
+            ${badgeHtml} 💬 צ'אט
+          </button>
+          ${businessPhone && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
+        </div>
+        ${renderTrackingBar(b.shipment_id, s.status || 'accepted', true)}
       </div>
-
-      <!-- תיאור (אם יש) -->
-      ${s.description ? `<div style="font-size:11px;color:var(--light);margin-bottom:6px;padding:5px 8px;background:rgba(255,255,255,.04);border-radius:7px">📝 ${s.description}</div>` : ''}
-
-      <!-- תמונות -->
-      ${imagesHtml}
-
-      <!-- כפתורי פעולה -->
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <button data-chat-shipment="${b.shipment_id}" onclick="openChatFromBanner(this)" data-shipment-id="${b.shipment_id}" data-business-name="${businessName.replace(/"/g,'&quot;')}"
-          style="flex:1;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
-          ${badgeHtml} 💬 צ'אט
-        </button>
-        ${businessPhone && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}"
-          style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px" title="פרטי הקשר נחשפו לאחר אישור הנהג">📞</a>` : ''}
-      </div>
-
-      <!-- מעקב סטטוס -->
-      ${renderTrackingBar(b.shipment_id, s.status || 'accepted', true)}
     </div>`;
   }).join('');
+}
+
+function toggleMyShipment(id) {
+  const el = document.getElementById(id);
+  const idx = id.replace('ms-', '');
+  const arrow = document.getElementById('ms-arrow-' + idx);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
 }
 
 function getFiltered() {
