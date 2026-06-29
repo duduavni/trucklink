@@ -105,9 +105,9 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   #sidebar { width:100%; height:45vh; flex-direction:column; }
   #main { flex-direction:column; }
   #map-wrap { height:100%; width:100%; }
-  #sidebar { width:100%; height:58vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; overflow:hidden; display:flex; flex-direction:column; }
-  #list { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; max-height:none !important; }
-  #my-shipments-tab { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; max-height:none !important; }
+  #sidebar { width:100%; height:60vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; overflow:hidden; display:flex; flex-direction:column; }
+  #list { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; }
+  #my-shipments-tab { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; }
 }
 </style>
 </head>
@@ -250,7 +250,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 
     <div id="list-header"><span id="list-count"></span><span style="color:var(--accent)">לפי מחיר ↓</span></div>
     <div id="list"></div>
-    <div id="my-shipments-tab" style="display:none;flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 10px 60px;min-height:0;width:100%"></div>
+    <div id="my-shipments-tab" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 80px;box-sizing:border-box;flex:1;min-height:0"></div>
   </div>
 
   <!-- BUSINESS VIEW -->
@@ -604,7 +604,14 @@ function switchTab(tab) {
     if (regionChips) regionChips.style.display = 'none';
     if (listEl) listEl.style.display = 'none';
     if (headerEl) headerEl.style.display = 'none';
-    if (mineEl) { mineEl.style.display = 'block'; mineEl.style.flex = '1'; }
+    if (mineEl) {
+      mineEl.style.display = 'flex';
+      mineEl.style.flexDirection = 'column';
+      mineEl.style.overflowY = 'auto';
+      mineEl.style.webkitOverflowScrolling = 'touch';
+      mineEl.style.flex = '1';
+      mineEl.style.minHeight = '0';
+    }
     renderMyShipments();
   } else {
     if (nearPanel) nearPanel.style.display = 'none';
@@ -683,7 +690,7 @@ async function renderMyShipments() {
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         ${s.weight ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">⚖️ ${s.weight}ק"ג</span>` : ''}
         ${s.pickup_date ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
-        <span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">🏢 ${businessName}</span>
+        <span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">🏢 עסק מאומת ✓</span>
       </div>
 
       <!-- תיאור (אם יש) -->
@@ -698,8 +705,8 @@ async function renderMyShipments() {
           style="flex:1;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
           ${badgeHtml} 💬 צ'אט
         </button>
-        ${businessPhone ? `<a href="tel:${businessPhone}"
-          style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
+        ${businessPhone && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}"
+          style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px" title="פרטי הקשר נחשפו לאחר אישור הנהג">📞</a>` : ''}
       </div>
 
       <!-- מעקב סטטוס -->
@@ -999,25 +1006,27 @@ function setBTab(f, btn) {
 
 function getStatusLabel(s) {
   const map = {
-    open:       '⏳ ממתין להצעות',
-    bidding:    '💬 יש הצעות',
-    accepted:   '✅ נהג נבחר',
-    pickup:     '📦 באיסוף',
-    on_the_way: '🚛 בדרך',
-    delivered:  '🎉 סופק',
-    done:       '🏁 הושלם'
+    open:             '⏳ ממתין להצעות',
+    bidding:          '💬 יש הצעות',
+    accepted:         '✅ נהג נבחר - ממתין לאישורו',
+    driver_confirmed: '🤝 נהג אישר - מתואם',
+    pickup:           '📦 באיסוף',
+    on_the_way:       '🚛 בדרך',
+    delivered:        '🎉 סופק',
+    done:             '🏁 הושלם'
   };
   return map[s] || s;
 }
 function getStatusColor(s) {
   const map = {
-    open:       'var(--muted)',
-    bidding:    'var(--accent)',
-    accepted:   'var(--green)',
-    pickup:     '#f59e0b',
-    on_the_way: '#3b82f6',
-    delivered:  '#22c55e',
-    done:       '#5a6478'
+    open:             'var(--muted)',
+    bidding:          'var(--accent)',
+    accepted:         '#f59e0b',
+    driver_confirmed: 'var(--green)',
+    pickup:           '#f59e0b',
+    on_the_way:       '#3b82f6',
+    delivered:        '#22c55e',
+    done:             '#5a6478'
   };
   return map[s] || 'var(--muted)';
 }
@@ -1047,7 +1056,7 @@ function renderBList() {
       </div>
       ${isExpired ? `<div style="margin-top:6px;font-size:11px;color:#fca5a5">⏰ פג תוקף הפרסום (48 שעות) – לא מוצג יותר לנהגים</div>` : ''}
       ${s.driver ? `<div style="margin-top:6px;font-size:11px;color:var(--green)">🚛 ${s.driver}</div>` : ''}
-      ${['accepted','pickup','on_the_way','delivered'].includes(s.status) ? renderTrackingBar(s.id, s.status, false) : ''}
+      ${['accepted','driver_confirmed','pickup','on_the_way','delivered'].includes(s.status) ? renderTrackingBar(s.id, s.status, false) : ''}
       ${s.status === 'delivered' && s.delivery_proof_urls?.length ? `
         <div style="margin-top:8px">
           <div style="font-size:10px;color:var(--muted);margin-bottom:6px">📸 אסמכתאות מסירה</div>
@@ -1302,7 +1311,7 @@ async function showBids(id) {
             <div style="width:42px;height:42px;background:rgba(245,166,35,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🚛</div>
             <div style="flex:1">
               <div style="font-weight:700;font-size:13px">${name}</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:2px">⭐${rating} · ${driver?.phone||''}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">⭐${rating} · נהג מאומת ✓</div>
               ${bid.note?`<div style="font-size:11px;color:var(--light);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
             </div>
             <div style="text-align:left;flex-shrink:0">
@@ -1328,7 +1337,7 @@ async function showBids(id) {
           <div style="width:42px;height:42px;background:rgba(245,166,35,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🚛</div>
           <div style="flex:1">
             <div style="font-weight:700;font-size:13px">${name}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">⭐${rating} · ${driver?.phone||''}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">⭐${rating} · נהג מאומת ✓</div>
             ${bid.note?`<div style="font-size:11px;color:var(--light);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
           </div>
           <div style="text-align:left;flex-shrink:0">
@@ -2272,6 +2281,9 @@ function subscribeRealtime() {
           showToast('🎉 הנהג דיווח שההובלה סופקה! ניתן עכשיו לדרג אותו', '#22c55e');
           sendLocalNotification('ההובלה סופקה!', 'הנהג דיווח על מסירה - ניתן לדרג אותו עכשיו');
         }
+        if (payload.new.status === 'driver_confirmed') {
+          showToast('🤝 הנהג אישר את ההובלה - ההובלה מתואמת!', '#22c55e');
+        }
       }
     })
     .on('postgres_changes', { event:'DELETE', schema:'public', table:'shipments' }, () => {
@@ -2519,10 +2531,25 @@ function renderMessages(messages) {
   container.scrollTop = container.scrollHeight;
 }
 
+// ── סינון פרטי קשר בצ'אט ────────────────────────────────────
+function containsContactInfo(text) {
+  const phoneRegex = /(\+972|0)([23489]|5[0-9]|7[0-9])[0-9]{7}/g;
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const whatsappRegex = /wa\.me|whatsapp/gi;
+  return phoneRegex.test(text) || emailRegex.test(text) || whatsappRegex.test(text);
+}
+
 async function sendChatMessage() {
   const input = document.getElementById('chat-input');
   const content = input?.value?.trim();
   if (!content || !currentUser || !activeChatShipment) return;
+
+  // חסום שיתוף פרטי קשר בצ'אט
+  if (containsContactInfo(content)) {
+    showToast('⚠️ לא ניתן לשתף פרטי קשר בצ\'אט לפני השלמת ההובלה', '#f59e0b');
+    return;
+  }
+
   input.value = '';
 
   // הצג את ההודעה מיד (optimistic update) בלי לחכות לשרת
@@ -2590,10 +2617,11 @@ function closeChat() {
 
 // ── מעקב סטטוס הובלה ─────────────────────────────────────────
 const DELIVERY_STEPS = [
-  { key: 'accepted',   label: 'נהג נבחר', icon: '✅' },
-  { key: 'pickup',     label: 'באיסוף',   icon: '📦' },
-  { key: 'on_the_way', label: 'בדרך',     icon: '🚛' },
-  { key: 'delivered',  label: 'סופק',     icon: '🎉' },
+  { key: 'accepted',         label: 'נהג נבחר',    icon: '✅' },
+  { key: 'driver_confirmed', label: 'נהג אישר',    icon: '🤝' },
+  { key: 'pickup',           label: 'באיסוף',      icon: '📦' },
+  { key: 'on_the_way',       label: 'בדרך',        icon: '🚛' },
+  { key: 'delivered',        label: 'סופק',        icon: '🎉' },
 ];
 
 function getDeliveryStepIndex(status) {
@@ -2623,10 +2651,28 @@ function renderTrackingBar(shipmentId, status, isDriver) {
   let nextBtn = '';
   if (isDriver && currentIdx < DELIVERY_STEPS.length - 1) {
     const next = DELIVERY_STEPS[currentIdx + 1];
-    nextBtn = `<button onclick="updateDeliveryStatus('${shipmentId}','${next.key}',this)"
-      style="width:100%;margin-top:10px;background:var(--accent);border:none;color:var(--black);border-radius:9px;padding:9px;cursor:pointer;font-family:inherit;font-weight:800;font-size:12px">
-      ${next.icon} עדכן: ${next.label}
-    </button>`;
+    if (DELIVERY_STEPS[currentIdx].key === 'accepted') {
+      // כפתור אישור מיוחד - בולט יותר
+      nextBtn = `
+        <div style="margin-top:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:10px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-align:center">נבחרת לביצוע הובלה זו - האם אתה זמין?</div>
+          <div style="display:flex;gap:6px">
+            <button onclick="updateDeliveryStatus('${shipmentId}','driver_confirmed',this)"
+              style="flex:2;background:var(--green);border:none;color:var(--black);border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
+              🤝 אני מאשר ומקבל את ההובלה
+            </button>
+            <button onclick="declineShipment('${shipmentId}',this)"
+              style="flex:1;background:transparent;border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-size:11px">
+              ✕ לא יכול
+            </button>
+          </div>
+        </div>`;
+    } else {
+      nextBtn = `<button onclick="updateDeliveryStatus('${shipmentId}','${next.key}',this)"
+        style="width:100%;margin-top:10px;background:var(--accent);border:none;color:var(--black);border-radius:9px;padding:9px;cursor:pointer;font-family:inherit;font-weight:800;font-size:12px">
+        ${next.icon} עדכן: ${next.label}
+      </button>`;
+    }
   }
 
   return `
@@ -2635,6 +2681,21 @@ function renderTrackingBar(shipmentId, status, isDriver) {
       <div style="display:flex;align-items:center">${steps}</div>
       ${nextBtn}
     </div>`;
+}
+
+async function declineShipment(shipmentId, btn) {
+  btn.disabled = true;
+  // מחזיר את ההובלה לסטטוס פתוח כדי שנהגים אחרים יוכלו להציע
+  const { error } = await sb.from('shipments').update({ status: 'open' }).eq('id', shipmentId);
+  // מסיר את ה-bid המאושר
+  await sb.from('bids').update({ status: 'declined' })
+    .eq('shipment_id', shipmentId)
+    .eq('driver_id', currentUser.id);
+  if (!error) {
+    showToast('ההובלה הוחזרה לרשימה הפתוחה');
+    loadShipmentsFromDB();
+    renderMyShipments();
+  }
 }
 
 async function updateDeliveryStatus(shipmentId, newStatus, btn) {
