@@ -905,7 +905,7 @@ function renderList() {
       <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:10px;color:var(--muted)">📅 ${s.date}</span>
         ${hasBid
-          ? `<span style="margin-right:auto;background:rgba(34,197,94,.12);color:var(--green);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700">✓ הגשת הצעה</span>`
+          ? `<span style="margin-right:auto;background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.3);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px">✓ הגשת הצעה · ממתין לתגובה</span>`
           : `<button onclick="event.stopPropagation();openBid(SHIPMENTS.find(x=>x.id==='${s.id}'))"
               style="margin-right:auto;background:var(--accent);border:none;color:var(--black);border-radius:7px;padding:5px 14px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800;flex-shrink:0">
               🚛 הגש הצעה
@@ -1709,6 +1709,9 @@ async function loadProfile() {
     setMode('driver');
     loadMyAcceptedShipments();
     loadDriverStats();
+    // טען הצעות קיימות של הנהג
+    sb.from('bids').select('shipment_id').eq('driver_id', currentUser.id)
+      .then(({data}) => { if (data) { data.forEach(b => myBids.add(b.shipment_id)); renderList(); } });
   }
 }
 
@@ -2305,7 +2308,9 @@ async function submitBidToDB(shipmentId, price, note) {
 // ── REALTIME SUBSCRIPTION ─────────────────────────────────────
 function subscribeRealtime() {
   if (!currentUser) return;
-  sb.channel('shipments-channel')
+
+  // ערוץ 1 - הובלות
+  sb.channel('shipments-ch')
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'shipments' }, payload => {
       if (currentProfile?.role === 'driver') {
         showToast(`📦 הובלה חדשה! ${payload.new.from_city} → ${payload.new.to_city}`);
@@ -2316,20 +2321,6 @@ function subscribeRealtime() {
       if (currentProfile?.role === 'business') {
         showToast(`💬 הצעה חדשה! ₪${payload.new.price}`);
         loadShipmentsFromDB();
-      }
-    })
-    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bids' }, payload => {
-      // הנהג שהציע - מקבל התראה כשהעסק בוחר בו
-      if (currentProfile?.role === 'driver' && payload.new.driver_id === currentUser.id) {
-        if (payload.new.status === 'accepted') {
-          showToast('🎉 נבחרת לבצע הובלה! בדוק את הפרטים', '#22c55e');
-          sendLocalNotification('נבחרת לביצוע הובלה!', 'העסק בחר בך - היכנס לאישור ההובלה');
-          loadMyAcceptedShipments();
-          renderMyShipments();
-        } else if (payload.new.status === 'cancelled') {
-          showToast('😔 נהג אחר אישר את ההובלה לפניך', '#f59e0b');
-          renderMyShipments();
-        }
       }
     })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'shipments' }, payload => {
@@ -2346,10 +2337,30 @@ function subscribeRealtime() {
       }
     })
     .on('postgres_changes', { event:'DELETE', schema:'public', table:'shipments' }, () => {
-      // הובלה נמחקה ע"י עסק – לרענן את הפיד אצל כולם כדי שתיעלם מיד
       loadShipmentsFromDB();
     })
-    .subscribe();
+    .subscribe(s => console.log('shipments-ch:', s));
+
+  // ערוץ 2 - עדכוני הצעות לנהג (ערוץ ייעודי לכל נהג)
+  if (currentProfile?.role === 'driver') {
+    sb.channel('bids-driver-' + currentUser.id)
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bids' }, payload => {
+        console.log('bid update:', payload.new);
+        if (payload.new.driver_id !== currentUser.id) return;
+        if (payload.new.status === 'accepted') {
+          showToast('📨 קיבלת בקשת אישור הובלה! לחץ על "שלי"', '#f59e0b');
+          sendLocalNotification('בקשת אישור הובלה!', 'עסק בחר בך - פתח "ההובלות שלי" כדי לאשר');
+          loadMyAcceptedShipments();
+          renderMyShipments();
+          // עבור לטאב שלי אוטומטית
+          setTimeout(() => switchTab('mine'), 500);
+        } else if (payload.new.status === 'cancelled') {
+          showToast('😔 נהג אחר אישר את ההובלה לפניך', '#f59e0b');
+          renderMyShipments();
+        }
+      })
+      .subscribe(s => console.log('bids-driver-ch:', s));
+  }
 }
 
 // רענון תקופתי לנהג, כדי שגם הובלות שעבר עליהן 48 שעות יורדו מהמפה
