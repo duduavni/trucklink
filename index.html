@@ -2309,10 +2309,16 @@ function subscribeRealtime() {
     })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bids' }, payload => {
       // הנהג שהציע - מקבל התראה כשהעסק בוחר בו
-      if (currentProfile?.role === 'driver' && payload.new.driver_id === currentUser.id && payload.new.status === 'accepted') {
-        showToast('🎉 נבחרת לבצע הובלה! בדוק את הפרטים', '#22c55e');
-        sendLocalNotification('נבחרת לביצוע הובלה!', 'העסק אישר את ההצעה שלך - היכנס לאפליקציה לפרטים ויצירת קשר');
-        loadMyAcceptedShipments();
+      if (currentProfile?.role === 'driver' && payload.new.driver_id === currentUser.id) {
+        if (payload.new.status === 'accepted') {
+          showToast('🎉 נבחרת לבצע הובלה! בדוק את הפרטים', '#22c55e');
+          sendLocalNotification('נבחרת לביצוע הובלה!', 'העסק בחר בך - היכנס לאישור ההובלה');
+          loadMyAcceptedShipments();
+          renderMyShipments();
+        } else if (payload.new.status === 'cancelled') {
+          showToast('😔 נהג אחר אישר את ההובלה לפניך', '#f59e0b');
+          renderMyShipments();
+        }
       }
     })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'shipments' }, payload => {
@@ -2759,6 +2765,27 @@ async function updateDeliveryStatus(shipmentId, newStatus, btn) {
 
   btn.disabled = true;
   btn.textContent = '⏳ מעדכן...';
+
+  // לוגיקת "מי שמאשר ראשון לוקח"
+  if (newStatus === 'driver_confirmed') {
+    // בדוק שלא כבר נהג אחר אישר
+    const { data: ship } = await sb.from('shipments').select('status').eq('id', shipmentId).single();
+    if (ship?.status === 'driver_confirmed') {
+      showToast('⚠️ מצטערים - נהג אחר אישר את ההובלה לפניך', '#f59e0b');
+      btn.disabled = false;
+      btn.textContent = '❌ ההובלה כבר נלקחה';
+      // הסר מרשימת ההובלות שלי
+      setTimeout(() => renderMyShipments(), 1500);
+      return;
+    }
+    // בטל את כל הנהגים האחרים שנבחרו לאותה הובלה
+    await sb.from('bids')
+      .update({ status: 'cancelled' })
+      .eq('shipment_id', shipmentId)
+      .eq('status', 'accepted')
+      .neq('driver_id', currentUser.id);
+  }
+
   const { error } = await sb.from('shipments').update({ status: newStatus }).eq('id', shipmentId);
   if (error) {
     showToast('שגיאה בעדכון סטטוס: ' + error.message, '#ef4444');
