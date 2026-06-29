@@ -1371,7 +1371,7 @@ async function showBids(id) {
 }
 
 async function acceptBid(bidId, shipmentId, driverName, price, btn) {
-  btn.textContent = 'מאשר...'; btn.disabled = true;
+  btn.innerHTML = '⏳ שולח הודעה לנהג...'; btn.disabled = true;
   console.log('acceptBid called with bidId:', bidId, 'shipmentId:', shipmentId);
 
   // שמור מספר הנהג (לפי סדר ברשימה) לפני שמוחקים את ה-overlay
@@ -1387,7 +1387,7 @@ async function acceptBid(bidId, shipmentId, driverName, price, btn) {
     status: 'accepted',
     accepted_at: new Date().toISOString()
   }).eq('id', bidId);
-  if (bidErr) { console.error('שגיאה בעדכון bid:', bidErr); showToast('שגיאה: '+bidErr.message, '#ef4444'); btn.textContent='בחר נהג זה'; btn.disabled=false; return; }
+  if (bidErr) { console.error('שגיאה בעדכון bid:', bidErr); showToast('שגיאה: '+bidErr.message, '#ef4444'); btn.innerHTML='בחר נהג זה'; btn.disabled=false; return; }
 
   // עדכן סטטוס ההובלה + שמור מועד פקיעת אישור (24 שעות)
   const expiresAt = new Date(Date.now() + 24*60*60*1000).toISOString();
@@ -1397,28 +1397,31 @@ async function acceptBid(bidId, shipmentId, driverName, price, btn) {
   }).eq('id', shipmentId);
   if (shipErr) { console.error('שגיאה בעדכון shipment:', shipErr); }
 
-  btn.closest('[style*=fixed]').innerHTML = `
-    <div style="text-align:center;padding:28px 20px">
-      <div style="font-size:52px;margin-bottom:12px">✅</div>
-      <div style="font-weight:800;font-size:20px;margin-bottom:6px">נהג #${driverNum} נבחר!</div>
-      <div style="font-family:monospace;font-size:22px;color:var(--accent);font-weight:800;margin-bottom:6px">₪${price}</div>
-      <div style="color:var(--muted);font-size:12px;margin-bottom:16px">הנהג קיבל הודעה ומתבקש לאשר את ההובלה</div>
+  // עדכן כפתור לסטטוס "הודעה נשלחה"
+  btn.innerHTML = '📨 הודעה נשלחה לנהג - ממתין לאישורו';
+  btn.style.background = 'rgba(245,166,35,.15)';
+  btn.style.color = 'var(--accent)';
+  btn.style.border = '1px solid rgba(245,166,35,.3)';
 
-      <div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:12px;padding:12px;margin-bottom:20px;text-align:right">
-        <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">🔒 פרטי הנהג יחשפו לאחר אישורו</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5">שם, טלפון ופרטי קשר יוצגו רק אחרי שהנהג מאשר את ביצוע ההובלה</div>
-      </div>
-
-      <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:10px;margin-bottom:20px;text-align:right">
-        <div style="font-size:11px;color:#fca5a5">⏰ אם הנהג לא יאשר תוך 24 שעות - תוכל לבחור נהג אחר</div>
-      </div>
-
-      <button onclick="this.closest('[style*=fixed]').remove()"
-        style="background:var(--accent);border:none;color:var(--black);border-radius:10px;padding:12px 28px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px">סגור</button>
-    </div>`;
+  // הצג הודעה בתוך ה-overlay מתחת לכרטיס
+  const overlay = btn.closest('[style*=fixed]');
+  let msgDiv = overlay?.querySelector('#accept-msg');
+  if (!msgDiv && overlay) {
+    msgDiv = document.createElement('div');
+    msgDiv.id = 'accept-msg';
+    msgDiv.style.cssText = 'margin:16px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:12px;padding:14px;text-align:right';
+    msgDiv.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px">📨 בקשת אישור נשלחה לנהג #${driverNum}</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6">
+        הנהג יקבל הודעה ויצטרך לאשר את ההובלה.<br>
+        🔒 פרטי הנהג יחשפו לאחר אישורו.<br>
+        ⏰ אם לא יאשר תוך 24 שעות - תוכל לבחור נהג אחר.
+      </div>`;
+    overlay.querySelector('[style*=padding:20px]')?.after(msgDiv) || overlay.appendChild(msgDiv);
+  }
 
   loadShipmentsFromDB();
-  showToast(`✅ נהג #${driverNum} נבחר - ממתין לאישורו`);
+  showToast(`📨 בקשת אישור נשלחה לנהג #${driverNum}`);
 }
 
 // New shipment modal
@@ -2081,7 +2084,7 @@ async function loadMyAcceptedShipments() {
 
   const { data, error } = await sb
     .from('bids')
-    .select('id, price, shipment_id, shipments(from_city, to_city, title, business_id)')
+    .select('id, price, shipment_id, shipments(from_city, to_city, title, business_id, status, profiles(full_name))')
     .eq('driver_id', currentUser.id)
     .eq('status', 'accepted');
 
@@ -2114,18 +2117,26 @@ async function loadMyAcceptedShipments() {
     .map(b => {
       const businessName = businessNames[b.shipments?.business_id] || 'העסק';
       const safeId = b.shipment_id;
+      const shipStatus = b.shipments?.status || 'accepted';
+      const isConfirmed = ['driver_confirmed','pickup','on_the_way','delivered'].includes(shipStatus);
+      const bannerColor = isConfirmed
+        ? 'linear-gradient(135deg,#22c55e,#16a34a)'
+        : 'linear-gradient(135deg,#f59e0b,#d97706)';
+      const bannerShadow = isConfirmed
+        ? '0 6px 24px rgba(34,197,94,.45)'
+        : '0 6px 24px rgba(245,158,11,.45)';
+      const bannerIcon = isConfirmed ? '🥳' : '📨';
+      const bannerTitle = isConfirmed ? 'נבחרת לבצע הובלה!' : 'בקשת אישור הובלה - לחץ לאשר!';
+      const bannerSub = isConfirmed ? 'מתואם ✓' : 'ממתין לאישורך';
       return `
-      <div class="accepted-banner-item" data-bid-id="${b.id}" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#08090c;border-radius:14px;padding:12px 14px;box-shadow:0 6px 24px rgba(34,197,94,.45);display:flex;align-items:center;gap:10px;animation:fadeUp .25s ease both">
-        <div style="font-size:26px">🥳</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:13px">נבחרת לביצוע הובלה!</div>
+      <div class="accepted-banner-item" data-bid-id="${b.id}" style="background:${bannerColor};color:#08090c;border-radius:14px;padding:12px 14px;box-shadow:${bannerShadow};display:flex;align-items:center;gap:10px;animation:fadeUp .25s ease both" onclick="switchTab('mine')">
+        <div style="font-size:26px">${bannerIcon}</div>
+        <div style="flex:1;min-width:0;cursor:pointer">
+          <div style="font-weight:800;font-size:13px">${bannerTitle}</div>
           <div style="font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.shipments?.from_city||''} → ${b.shipments?.to_city||''} · ₪${b.price}</div>
+          <div style="font-size:10px;opacity:.7;margin-top:1px">${bannerSub}</div>
         </div>
-        <button data-shipment-id="${safeId}" data-business-name="${businessName.replace(/"/g,'&quot;')}" onclick="openChatFromBanner(this)"
-          style="background:rgba(0,0,0,.2);border:none;color:#08090c;border-radius:9px;padding:6px 10px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:800;white-space:nowrap;flex-shrink:0">
-          💬 צ'אט עם ${businessName}
-        </button>
-        <button onclick="dismissBanner(this, '${b.id}')"
+        <button onclick="event.stopPropagation();dismissBanner(this, '${b.id}')"
           style="background:rgba(0,0,0,.15);border:none;color:#08090c;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;flex-shrink:0">✕</button>
       </div>`;
     }).join('');
