@@ -2341,26 +2341,23 @@ function subscribeRealtime() {
     })
     .subscribe(s => console.log('shipments-ch:', s));
 
-  // ערוץ 2 - עדכוני הצעות לנהג (ערוץ ייעודי לכל נהג)
-  if (currentProfile?.role === 'driver') {
-    sb.channel('bids-driver-' + currentUser.id)
-      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bids' }, payload => {
-        console.log('bid update:', payload.new);
-        if (payload.new.driver_id !== currentUser.id) return;
-        if (payload.new.status === 'accepted') {
-          showToast('📨 קיבלת בקשת אישור הובלה! לחץ על "שלי"', '#f59e0b');
-          sendLocalNotification('בקשת אישור הובלה!', 'עסק בחר בך - פתח "ההובלות שלי" כדי לאשר');
-          loadMyAcceptedShipments();
-          renderMyShipments();
-          // עבור לטאב שלי אוטומטית
-          setTimeout(() => switchTab('mine'), 500);
-        } else if (payload.new.status === 'cancelled') {
-          showToast('😔 נהג אחר אישר את ההובלה לפניך', '#f59e0b');
-          renderMyShipments();
-        }
-      })
-      .subscribe(s => console.log('bids-driver-ch:', s));
-  }
+  // ערוץ 2 - עדכוני הצעות לנהג (ערוץ ייעודי - תמיד נוצר, role נבדק בתוך ה-callback)
+  sb.channel('bids-driver-' + currentUser.id)
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'bids' }, payload => {
+      console.log('bid update received:', payload.new?.status, 'driver_id:', payload.new?.driver_id, 'me:', currentUser.id);
+      if (payload.new?.driver_id !== currentUser.id) return;
+      if (payload.new.status === 'accepted') {
+        showToast('📨 קיבלת בקשת אישור הובלה! לחץ על "שלי"', '#f59e0b');
+        sendLocalNotification('בקשת אישור הובלה!', 'עסק בחר בך - פתח "ההובלות שלי" כדי לאשר');
+        loadMyAcceptedShipments();
+        renderMyShipments();
+        setTimeout(() => switchTab('mine'), 500);
+      } else if (payload.new.status === 'cancelled') {
+        showToast('😔 נהג אחר אישר את ההובלה לפניך', '#f59e0b');
+        renderMyShipments();
+      }
+    })
+    .subscribe(s => console.log('bids-driver-ch:', s));
 }
 
 // רענון תקופתי לנהג, כדי שגם הובלות שעבר עליהן 48 שעות יורדו מהמפה
