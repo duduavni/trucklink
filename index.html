@@ -1060,6 +1060,11 @@ function renderBList() {
       </div>
       ${isExpired ? `<div style="margin-top:6px;font-size:11px;color:#fca5a5">⏰ פג תוקף הפרסום (48 שעות) – לא מוצג יותר לנהגים</div>` : ''}
       ${s.driver ? `<div style="margin-top:6px;font-size:11px;color:var(--green)">🚛 ${s.driver}</div>` : ''}
+      ${s.status === 'accepted' && s.confirmation_expires_at && new Date(s.confirmation_expires_at) < new Date() ? `
+        <div style="margin-top:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px;font-size:11px;color:#fca5a5">
+          ⏰ הנהג לא אישר בזמן
+          <button onclick="reopenShipment('${s.id}')" style="margin-right:8px;background:#ef4444;border:none;color:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">בחר נהג אחר</button>
+        </div>` : ''}
       ${['accepted','driver_confirmed','pickup','on_the_way','delivered'].includes(s.status) ? renderTrackingBar(s.id, s.status, false) : ''}
       ${s.status === 'delivered' && s.delivery_proof_urls?.length ? `
         <div style="margin-top:8px">
@@ -1364,25 +1369,51 @@ async function acceptBid(bidId, shipmentId, driverName, price, btn) {
   btn.textContent = 'מאשר...'; btn.disabled = true;
   console.log('acceptBid called with bidId:', bidId, 'shipmentId:', shipmentId);
 
+  // שמור מספר הנהג (לפי סדר ברשימה) לפני שמוחקים את ה-overlay
+  const driverCard = btn.closest('[style*=border-radius]');
+  const allCards = btn.closest('[style*=fixed]')?.querySelectorAll('[style*=border-radius:12px]');
+  let driverNum = 1;
+  if (allCards && driverCard) {
+    Array.from(allCards).forEach((c, i) => { if (c === driverCard) driverNum = i + 1; });
+  }
+
   // עדכן סטטוס ההצעה
-  const { error: bidErr } = await sb.from('bids').update({ status:'accepted' }).eq('id', bidId);
+  const { error: bidErr } = await sb.from('bids').update({
+    status: 'accepted',
+    accepted_at: new Date().toISOString()
+  }).eq('id', bidId);
   if (bidErr) { console.error('שגיאה בעדכון bid:', bidErr); showToast('שגיאה: '+bidErr.message, '#ef4444'); btn.textContent='בחר נהג זה'; btn.disabled=false; return; }
 
-  // עדכן סטטוס ההובלה
-  const { error: shipErr } = await sb.from('shipments').update({ status:'accepted' }).eq('id', shipmentId);
+  // עדכן סטטוס ההובלה + שמור מועד פקיעת אישור (24 שעות)
+  const expiresAt = new Date(Date.now() + 24*60*60*1000).toISOString();
+  const { error: shipErr } = await sb.from('shipments').update({
+    status: 'accepted',
+    confirmation_expires_at: expiresAt
+  }).eq('id', shipmentId);
   if (shipErr) { console.error('שגיאה בעדכון shipment:', shipErr); }
 
   btn.closest('[style*=fixed]').innerHTML = `
-    <div style="text-align:center;padding:24px">
-      <div style="font-size:52px;margin-bottom:12px">🎉</div>
-      <div style="font-weight:800;font-size:20px;margin-bottom:8px">${driverName} נבחר!</div>
-      <div style="color:var(--muted);font-size:13px;margin-bottom:20px">₪${price} · הנהג יקבל הודעה עכשיו</div>
+    <div style="text-align:center;padding:28px 20px">
+      <div style="font-size:52px;margin-bottom:12px">✅</div>
+      <div style="font-weight:800;font-size:20px;margin-bottom:6px">נהג #${driverNum} נבחר!</div>
+      <div style="font-family:monospace;font-size:22px;color:var(--accent);font-weight:800;margin-bottom:6px">₪${price}</div>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:16px">הנהג קיבל הודעה ומתבקש לאשר את ההובלה</div>
+
+      <div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:12px;padding:12px;margin-bottom:20px;text-align:right">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px">🔒 פרטי הנהג יחשפו לאחר אישורו</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5">שם, טלפון ופרטי קשר יוצגו רק אחרי שהנהג מאשר את ביצוע ההובלה</div>
+      </div>
+
+      <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:10px;margin-bottom:20px;text-align:right">
+        <div style="font-size:11px;color:#fca5a5">⏰ אם הנהג לא יאשר תוך 24 שעות - תוכל לבחור נהג אחר</div>
+      </div>
+
       <button onclick="this.closest('[style*=fixed]').remove()"
-        style="background:var(--accent);border:none;color:var(--black);border-radius:10px;padding:12px 28px;cursor:pointer;font-family:inherit;font-weight:800">סגור</button>
+        style="background:var(--accent);border:none;color:var(--black);border-radius:10px;padding:12px 28px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px">סגור</button>
     </div>`;
 
   loadShipmentsFromDB();
-  showToast(`✅ ${driverName} נבחר להובלה!`);
+  showToast(`✅ נהג #${driverNum} נבחר - ממתין לאישורו`);
 }
 
 // New shipment modal
@@ -2191,6 +2222,7 @@ async function loadShipmentsFromDB() {
           delivery_note:       s.delivery_note || '',
           acceptedDriverId:    acceptedBid?.driver_id || null,
           acceptedDriverName:  acceptedBid?.profiles?.full_name || 'הנהג',
+          confirmation_expires_at: s.confirmation_expires_at || null,
         });
       });
       showToast(`✅ ${data.length} הובלות נטענו`);
@@ -2686,6 +2718,16 @@ function renderTrackingBar(shipmentId, status, isDriver) {
       <div style="display:flex;align-items:center">${steps}</div>
       ${nextBtn}
     </div>`;
+}
+
+async function reopenShipment(shipmentId) {
+  if (!confirm('האם לבטל את בחירת הנהג ולפתוח את ההובלה מחדש לנהגים אחרים?')) return;
+  // החזר לסטטוס open ואפס bid שנבחר
+  await sb.from('bids').update({ status: 'pending' }).eq('shipment_id', shipmentId).eq('status', 'accepted');
+  const { error } = await sb.from('shipments').update({ status: 'open', confirmation_expires_at: null }).eq('id', shipmentId);
+  if (error) { showToast('שגיאה: ' + error.message, '#ef4444'); return; }
+  showToast('✅ ההובלה נפתחה מחדש - בחר נהג אחר');
+  loadShipmentsFromDB();
 }
 
 async function declineShipment(shipmentId, btn) {
