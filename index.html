@@ -1376,12 +1376,15 @@ async function acceptBid(bidId, shipmentId, driverName, price, btn) {
   console.log('acceptBid called with bidId:', bidId, 'shipmentId:', shipmentId);
 
   // שמור מספר הנהג (לפי סדר ברשימה) לפני שמוחקים את ה-overlay
-  const driverCard = btn.closest('[style*=border-radius]');
-  const allCards = btn.closest('[style*=fixed]')?.querySelectorAll('[style*=border-radius:12px]');
+  // מספר הנהג לפי הסדר ברשימה
   let driverNum = 1;
-  if (allCards && driverCard) {
-    Array.from(allCards).forEach((c, i) => { if (c === driverCard) driverNum = i + 1; });
-  }
+  try {
+    const allCards = btn.closest('[style*=fixed]')?.querySelectorAll('[style*=border-radius:12px][style*=background:var(--card)]');
+    const driverCard = btn.closest('[style*=background:var(--card)]');
+    if (allCards && driverCard) {
+      Array.from(allCards).forEach((c, i) => { if (c === driverCard) driverNum = i + 1; });
+    }
+  } catch(e) { driverNum = 1; }
 
   // עדכן סטטוס ההצעה
   const { error: bidErr } = await sb.from('bids').update({
