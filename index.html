@@ -2430,7 +2430,9 @@ function subscribeRealtime() {
         setTimeout(() => switchTab('mine'), 500);
       } else if (payload.new.status === 'cancelled') {
         showToast('😔 נהג אחר אישר את ההובלה לפניך', '#f59e0b');
+        sendLocalNotification('ההובלה נתפסה', 'נהג אחר הספיק לאשר את ההובלה לפניך');
         renderMyShipments();
+        loadMyAcceptedShipments();
       }
     })
     .subscribe(s => console.log('bids-driver-ch:', s));
@@ -2867,24 +2869,47 @@ async function updateDeliveryStatus(shipmentId, newStatus, btn) {
   btn.disabled = true;
   btn.textContent = '⏳ מעדכן...';
 
-  // לוגיקת "מי שמאשר ראשון לוקח"
+  // לוגיקת "מי שמאשר ראשון לוקח" - עדכון אטומי כדי למנוע מצב מירוץ
   if (newStatus === 'driver_confirmed') {
-    // בדוק שלא כבר נהג אחר אישר
-    const { data: ship } = await sb.from('shipments').select('status').eq('id', shipmentId).single();
-    if (ship?.status === 'driver_confirmed') {
+    // עדכון מותנה אטומי: רק אם הסטטוס עדיין 'accepted' (לא נתפס כבר ע"י נהג אחר)
+    const { data: updated, error: raceErr } = await sb
+      .from('shipments')
+      .update({ status: 'driver_confirmed' })
+      .eq('id', shipmentId)
+      .eq('status', 'accepted')
+      .select();
+
+    if (raceErr) {
+      showToast('שגיאה בעדכון סטטוס: ' + raceErr.message, '#ef4444');
+      btn.disabled = false; btn.textContent = 'נסה שוב';
+      return;
+    }
+
+    if (!updated || updated.length === 0) {
+      // לא הצלחנו לעדכן - מישהו אחר כבר זכה בהובלה
       showToast('⚠️ מצטערים - נהג אחר אישר את ההובלה לפניך', '#f59e0b');
       btn.disabled = false;
       btn.textContent = '❌ ההובלה כבר נלקחה';
-      // הסר מרשימת ההובלות שלי
+      // עדכן את ה-bid שלי לבוטל
+      await sb.from('bids').update({ status: 'cancelled' })
+        .eq('shipment_id', shipmentId)
+        .eq('driver_id', currentUser.id);
       setTimeout(() => renderMyShipments(), 1500);
       return;
     }
-    // בטל את כל הנהגים האחרים שנבחרו לאותה הובלה
+
+    // הצלחנו! אני הנהג שזכה - בטל את כל שאר הנהגים שאושרו לאותה הובלה
     await sb.from('bids')
       .update({ status: 'cancelled' })
       .eq('shipment_id', shipmentId)
       .eq('status', 'accepted')
       .neq('driver_id', currentUser.id);
+
+    showToast(`✅ סטטוס עודכן: ${getStatusLabel(newStatus)}`);
+    loadShipmentsFromDB();
+    renderMyShipments();
+    loadDriverStats();
+    return;
   }
 
   const { error } = await sb.from('shipments').update({ status: newStatus }).eq('id', shipmentId);
