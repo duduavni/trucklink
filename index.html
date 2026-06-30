@@ -2360,7 +2360,7 @@ async function renderBusinessBanner() {
   const chosenHtml = chosenList.map(s => `
     <div class="business-banner-item" data-ship-id="${s.id}" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#08090c;border-radius:14px;padding:12px 14px;box-shadow:0 6px 24px rgba(34,197,94,.45);display:flex;align-items:center;gap:10px;animation:fadeUp .25s ease both">
       <div style="font-size:26px">🤝</div>
-      <div style="flex:1;min-width:0;cursor:pointer" onclick="${s.escrow_paid ? `setBTab('all', document.querySelector('.b-tab'))` : `openEscrowPaymentModal('${s.id}',${s.price})`}">
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="${s.escrow_paid ? `setBTab('all', document.querySelector('.b-tab'))` : `openEscrowPaymentModal('${s.id}',${s.finalPrice})`}">
         <div style="font-weight:800;font-size:13px">נבחר נהג להובלה!</div>
         <div style="font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.from} → ${s.to} · ₪${s.price}</div>
         <div style="font-size:10px;opacity:.7;margin-top:1px">${s.escrow_paid ? 'ההובלה מתואמת - ניתן לראות פרטי קשר' : 'שלם לנאמנות כדי לפתוח את הצ\'אט'}</div>
@@ -2450,7 +2450,7 @@ async function loadShipmentsFromDB() {
     // עסק – טוען הובלות שלו
     const { data, error } = await sb
       .from('shipments')
-      .select('*, bids(id, status, driver_id, profiles!driver_id(full_name))')
+      .select('*, bids(id, status, driver_id, price, profiles!driver_id(full_name))')
       .eq('business_id', currentUser.id)
       .order('created_at', { ascending: false });
 
@@ -2459,7 +2459,7 @@ async function loadShipmentsFromDB() {
 
     if (!error && data?.length > 0) {
       data.forEach(s => {
-        const acceptedBid = s.bids?.find(b => b.status === 'accepted');
+        const chosenBid = s.bids?.find(b => b.status === 'chosen') || s.bids?.find(b => b.status === 'accepted');
         BUSINESS_SHIPMENTS.push({
           id:                  s.id,
           title:               s.title || `${s.from_city} → ${s.to_city}`,
@@ -2469,6 +2469,7 @@ async function loadShipmentsFromDB() {
           toLatLng:            cityToLatLng(s.to_city),
           weight:              s.weight || 0,
           price:               s.base_price || 0,
+          finalPrice:          chosenBid?.price ?? (s.base_price || 0),
           status:              s.status || 'open',
           bids:                s.bids?.length || 0,
           date:                formatDate(s.pickup_date),
@@ -2478,8 +2479,8 @@ async function loadShipmentsFromDB() {
           createdAt:           s.created_at || null,
           delivery_proof_urls: s.delivery_proof_urls || [],
           delivery_note:       s.delivery_note || '',
-          acceptedDriverId:    acceptedBid?.driver_id || null,
-          acceptedDriverName:  acceptedBid?.profiles?.full_name || 'הנהג',
+          acceptedDriverId:    chosenBid?.driver_id || null,
+          acceptedDriverName:  chosenBid?.profiles?.full_name || 'הנהג',
           confirmation_expires_at: s.confirmation_expires_at || null,
           escrow_paid:         s.escrow_paid || false,
           driver_paid:         s.driver_paid || false,
@@ -3530,7 +3531,7 @@ window.renderBList = function() {
 
           // כפתור תשלום - שלב 1 (escrow) רק כש-driver_confirmed וטרם שולם
           const escrowBtn = (s.status === 'driver_confirmed' && !s.escrow_paid)
-            ? `<button onclick="openEscrowPaymentModal('${s.id}',${s.price})"
+            ? `<button onclick="openEscrowPaymentModal('${s.id}',${s.finalPrice})"
                 style="flex:1;background:linear-gradient(135deg,rgba(245,166,35,.25),rgba(245,166,35,.12));border:1px solid rgba(245,166,35,.5);color:var(--accent);border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">
                 🔒 שלם לנאמנות
               </button>`
@@ -3538,7 +3539,7 @@ window.renderBList = function() {
 
           // כפתור שחרור תשלום - שלב 2, רק אחרי delivered ולפני driver_paid
           const releaseBtn = (s.status === 'delivered' && s.escrow_paid && !s.driver_paid)
-            ? `<button onclick="openReleasePaymentModal('${s.id}',${s.price},'${(s.acceptedDriverName||'הנהג').replace(/'/g,"\\'")}')"
+            ? `<button onclick="openReleasePaymentModal('${s.id}',${s.finalPrice},'${(s.acceptedDriverName||'הנהג').replace(/'/g,"\\'")}')"
                 style="flex:1;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86efac;border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">
                 💸 העבר תשלום לנהג
               </button>`
