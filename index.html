@@ -106,7 +106,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   #sidebar { width:100%; height:45vh; flex-direction:column; }
   #main { flex-direction:column; }
   #map-wrap { height:100%; width:100%; }
-  #sidebar { width:100%; height:60vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; overflow:hidden; display:flex; flex-direction:column; }
+  #sidebar { width:100%; height:70vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; overflow:hidden; display:flex; flex-direction:column; }
   #list { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; }
   #my-shipments-tab { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; pointer-events:all !important; }
 }
@@ -694,7 +694,7 @@ async function renderMyShipments() {
           <span id="ms-arrow-${idx}" style="color:var(--muted);font-size:11px">▼</span>
         </div>
       </div>
-      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid rgba(255,255,255,.06)">
+      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid rgba(255,255,255,.06);max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
           ${s.weight ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">⚖️ ${s.weight}ק"ג</span>` : ''}
           ${s.pickup_date ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
@@ -721,6 +721,15 @@ function toggleMyShipment(id) {
   const arrow = document.getElementById('ms-arrow-' + idx);
   if (!el) return;
   const isOpen = el.style.display !== 'none';
+  // סגור כרטיסים פתוחים אחרים כדי לא לתפוס את כל המסך
+  document.querySelectorAll('[id^="ms-"]:not([id^="ms-arrow"])').forEach(otherEl => {
+    if (otherEl.id !== id) {
+      otherEl.style.display = 'none';
+      const otherIdx = otherEl.id.replace('ms-', '');
+      const otherArrow = document.getElementById('ms-arrow-' + otherIdx);
+      if (otherArrow) otherArrow.textContent = '▼';
+    }
+  });
   el.style.display = isOpen ? 'none' : 'block';
   if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
 }
@@ -2337,6 +2346,11 @@ function subscribeRealtime() {
         }
         if (payload.new.status === 'driver_confirmed') {
           showToast('🤝 הנהג אישר את ההובלה - ההובלה מתואמת!', '#22c55e');
+          sendLocalNotification('הנהג אישר!', 'ההובלה מתואמת - ניתן לראות פרטי קשר');
+        }
+        if (payload.new.status === 'open' && payload.old?.status === 'accepted') {
+          showToast('😔 הנהג לא יכול לבצע את ההובלה - חזרה לרשימה הפתוחה', '#f59e0b');
+          sendLocalNotification('הנהג ביטל', 'ההובלה חזרה להיות פתוחה לנהגים אחרים');
         }
       }
     })
