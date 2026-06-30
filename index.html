@@ -296,6 +296,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
     <!-- Business map -->
     <div id="b-map-wrap" style="flex:1;position:relative">
       <div id="b-map" style="width:100%;height:100%"></div>
+      <div id="business-banner" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:700;display:flex;flex-direction:column;gap:8px;width:min(380px,calc(100% - 32px))"></div>
       <div style="position:absolute;bottom:16px;right:12px;z-index:500;background:rgba(8,10,18,.85);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted)">
         מפת ההובלות הפעילות שלך
       </div>
@@ -1111,6 +1112,9 @@ function renderBList() {
 function editShipment(id) {
   const s = BUSINESS_SHIPMENTS.find(x => x.id === id);
   if (!s) return;
+  const isLocked = ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status);
+  const lockedAttr = isLocked ? 'disabled' : '';
+  const lockedStyle = isLocked ? 'opacity:.5;cursor:not-allowed' : '';
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px';
   overlay.innerHTML = `
@@ -1120,16 +1124,20 @@ function editShipment(id) {
         <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
       </div>
 
+      ${isLocked ? `<div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--accent);line-height:1.5">
+        🔒 הנהג כבר אישר את ההובלה - לא ניתן לשנות מסלול, משקל או מחיר. ניתן לעדכן רק את התיאור/הערות.
+      </div>` : ''}
+
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <div style="flex:1;position:relative">
           <div style="font-size:12px;color:var(--light);margin-bottom:5px">📍 מאיפה?</div>
-          <input id="edit-from" value="${s.from}" style="${INP}" autocomplete="off"
+          <input id="edit-from" value="${s.from}" style="${INP};${lockedStyle}" autocomplete="off" ${lockedAttr}
             oninput="showCitySuggest(this,'edit-from-list')" onblur="setTimeout(()=>hideSuggest('edit-from-list'),200)">
           <div id="edit-from-list" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--accent);border-radius:0 0 9px 9px;max-height:180px;overflow-y:auto;z-index:999"></div>
         </div>
         <div style="flex:1;position:relative">
           <div style="font-size:12px;color:var(--light);margin-bottom:5px">🏁 לאיפה?</div>
-          <input id="edit-to" value="${s.to}" style="${INP}" autocomplete="off"
+          <input id="edit-to" value="${s.to}" style="${INP};${lockedStyle}" autocomplete="off" ${lockedAttr}
             oninput="showCitySuggest(this,'edit-to-list')" onblur="setTimeout(()=>hideSuggest('edit-to-list'),200)">
           <div id="edit-to-list" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--accent);border-radius:0 0 9px 9px;max-height:180px;overflow-y:auto;z-index:999"></div>
         </div>
@@ -1138,23 +1146,23 @@ function editShipment(id) {
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <div style="flex:1">
           <div style="font-size:12px;color:var(--light);margin-bottom:5px">⚖️ משקל (ק"ג)</div>
-          <input id="edit-weight" type="number" value="${s.weight}" style="${INP}">
+          <input id="edit-weight" type="number" value="${s.weight}" style="${INP};${lockedStyle}" ${lockedAttr}>
         </div>
         <div style="flex:1">
           <div style="font-size:12px;color:var(--light);margin-bottom:5px">₪ מחיר בסיס</div>
-          <input id="edit-price" type="number" value="${s.price}" style="${INP}">
+          <input id="edit-price" type="number" value="${s.price}" style="${INP};${lockedStyle}" ${lockedAttr}>
         </div>
       </div>
 
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">📝 תיאור</div>
+        <div style="font-size:12px;color:var(--light);margin-bottom:5px">📝 תיאור / הערות</div>
         <textarea id="edit-title" rows="2"
           style="width:100%;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:inherit;direction:rtl;resize:none">${s.title}</textarea>
       </div>
 
       <div style="margin-bottom:14px">
         <div style="font-size:12px;color:var(--light);margin-bottom:5px">📊 סטטוס</div>
-        <select id="edit-status" style="${INP}">
+        <select id="edit-status" style="${INP};${lockedStyle}" ${lockedAttr}>
           <option value="open"      ${s.status==='open'      ?'selected':''}>⏳ ממתין להצעות</option>
           <option value="bidding"   ${s.status==='bidding'   ?'selected':''}>💬 יש הצעות</option>
           <option value="accepted"  ${s.status==='accepted'  ?'selected':''}>✅ נהג נבחר</option>
@@ -1165,7 +1173,7 @@ function editShipment(id) {
       <div style="display:flex;gap:10px">
         <button onclick="this.closest('[style*=fixed]').remove()"
           style="flex:1;background:transparent;border:1px solid var(--border);color:var(--light);border-radius:10px;padding:13px;cursor:pointer;font-family:inherit;font-size:13px">ביטול</button>
-        <button onclick="saveEditShipment('${id}',this)"
+        <button onclick="saveEditShipment('${id}',this,${isLocked})"
           style="flex:2;background:var(--accent);border:none;color:var(--black);border-radius:10px;padding:13px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px">
           💾 שמור שינויים
         </button>
@@ -1175,17 +1183,32 @@ function editShipment(id) {
   document.body.appendChild(overlay);
 }
 
-async function saveEditShipment(id, btn) {
+async function saveEditShipment(id, btn, isLocked) {
+  const title  = document.getElementById('edit-title').value;
+  btn.textContent = 'שומר...'; btn.disabled = true;
+
+  if (isLocked) {
+    // נעול אחרי אישור הנהג - מעדכנים רק תיאור/הערות
+    if (currentUser) {
+      const { error } = await sb.from('shipments').update({ title }).eq('id', id);
+      if (error) { showToast('שגיאה בעדכון: '+error.message,'#ef4444'); btn.textContent='שמור שינויים'; btn.disabled=false; return; }
+    }
+    const s = BUSINESS_SHIPMENTS.find(x=>x.id===id);
+    if (s) s.title = title;
+    btn.closest('[style*=fixed]').remove();
+    renderBList();
+    showToast('✅ ההערות עודכנו');
+    if (currentUser) loadShipmentsFromDB();
+    return;
+  }
+
   const from   = document.getElementById('edit-from').value;
   const to     = document.getElementById('edit-to').value;
   const weight = document.getElementById('edit-weight').value;
   const price  = document.getElementById('edit-price').value;
-  const title  = document.getElementById('edit-title').value;
   const status = document.getElementById('edit-status').value;
 
-  if (!from || !to) { showToast('נא למלא מוצא ויעד','#ef4444'); return; }
-
-  btn.textContent = 'שומר...'; btn.disabled = true;
+  if (!from || !to) { showToast('נא למלא מוצא ויעד','#ef4444'); btn.textContent='שמור שינויים'; btn.disabled=false; return; }
 
   // עדכן בסופהבייס אם מחובר
   if (currentUser) {
@@ -2165,6 +2188,33 @@ function dismissBanner(btn, bidId) {
   btn.closest('.accepted-banner-item').remove();
 }
 
+// ── באנר לעסק - מציג הובלות שהנהג אישר (driver_confirmed) ──────
+function renderBusinessBanner() {
+  const container = document.getElementById('business-banner');
+  if (!container || currentProfile?.role !== 'business') return;
+  const dismissed = JSON.parse(localStorage.getItem('dismissed-business-banners') || '[]');
+  const confirmed = BUSINESS_SHIPMENTS.filter(s => s.status === 'driver_confirmed' && !dismissed.includes(s.id));
+
+  container.innerHTML = confirmed.map(s => `
+    <div class="business-banner-item" data-ship-id="${s.id}" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#08090c;border-radius:14px;padding:12px 14px;box-shadow:0 6px 24px rgba(34,197,94,.45);display:flex;align-items:center;gap:10px;animation:fadeUp .25s ease both">
+      <div style="font-size:26px">🤝</div>
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="setBTab('all', document.querySelector('.b-tab'))">
+        <div style="font-weight:800;font-size:13px">הנהג אישר את ההובלה!</div>
+        <div style="font-size:11px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.from} → ${s.to} · ₪${s.price}</div>
+        <div style="font-size:10px;opacity:.7;margin-top:1px">ההובלה מתואמת - ניתן לראות פרטי קשר</div>
+      </div>
+      <button onclick="event.stopPropagation();dismissBusinessBanner(this,'${s.id}')"
+        style="background:rgba(0,0,0,.15);border:none;color:#08090c;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;flex-shrink:0">✕</button>
+    </div>`).join('');
+}
+
+function dismissBusinessBanner(btn, shipId) {
+  const dismissed = JSON.parse(localStorage.getItem('dismissed-business-banners') || '[]');
+  dismissed.push(shipId);
+  localStorage.setItem('dismissed-business-banners', JSON.stringify(dismissed));
+  btn.closest('.business-banner-item').remove();
+}
+
 function openChatFromBanner(btn) {
   const shipmentId = btn.getAttribute('data-shipment-id');
   const businessName = btn.getAttribute('data-business-name');
@@ -2262,6 +2312,7 @@ async function loadShipmentsFromDB() {
       showToast('אין לך הובלות עדיין - פרסם הובלה ראשונה!');
     }
     renderBList();
+    renderBusinessBanner();
     loadUnreadCounts();
   }
 }
