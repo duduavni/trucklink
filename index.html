@@ -3152,7 +3152,7 @@ window.renderBList = function() {
   _origRenderBList();
   // הוסף כפתורי פעולה לכרטיסים שהושלמו
   BUSINESS_SHIPMENTS.forEach(s => {
-    if (s.status === 'accepted' || s.status === 'done') {
+    if (['accepted','driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status)) {
       const cards = document.querySelectorAll('#b-list > div');
       cards.forEach(card => {
         if (card.textContent.includes(s.title || s.from) && !card.querySelector('.extra-actions')) {
