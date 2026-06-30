@@ -108,7 +108,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   #map-wrap { height:100%; width:100%; }
   #sidebar { width:100%; height:60vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:16px 16px 0 0; overflow:hidden; display:flex; flex-direction:column; }
   #list { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; }
-  #my-shipments-tab { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; }
+  #my-shipments-tab { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; pointer-events:all !important; }
 }
 </style>
 </head>
@@ -251,7 +251,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 
     <div id="list-header"><span id="list-count"></span><span style="color:var(--accent)">לפי מחיר ↓</span></div>
     <div id="list"></div>
-    <div id="my-shipments-tab" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 80px;box-sizing:border-box;flex:1;min-height:0"></div>
+    <div id="my-shipments-tab" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 80px;box-sizing:border-box;flex:1;min-height:0;pointer-events:all"></div>
   </div>
 
   <!-- BUSINESS VIEW -->
