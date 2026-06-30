@@ -686,6 +686,8 @@ async function renderMyShipments() {
       myLabel = '⏳ אישרת - ממתין לבחירת העסק'; myColor = 'var(--accent)';
     } else if (s.status === 'accepted' && b.status === 'accepted') {
       myLabel = '✅ עסק בחר בך - ממתין לאישורך'; myColor = '#f59e0b';
+    } else if (b.status === 'chosen' && s.status === 'driver_confirmed') {
+      myLabel = s.escrow_paid ? '🤝 עסק אישר - מתואם' : '🎉 עסק אישר! ממתין לתשלום לנאמנות'; myColor = 'var(--green)';
     } else {
       myLabel = getStatusLabel(s.status || 'accepted'); myColor = getStatusColor(s.status || 'accepted');
     }
@@ -722,7 +724,7 @@ async function renderMyShipments() {
               </button>`}
           ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
         </div>
-        ${renderTrackingBar(b.shipment_id, s.status || 'accepted', true, b.status)}
+        ${renderTrackingBar(b.shipment_id, s.status || 'accepted', true, b.status, s.escrow_paid)}
       </div>
     </div>`;
   }).join('');
@@ -2300,10 +2302,10 @@ async function loadMyAcceptedShipments() {
         bannerShadow = '0 6px 24px rgba(245,158,11,.45)';
         bannerIcon = '⏳'; bannerTitle = 'אישרת! ממתינים לבחירת העסק'; bannerSub = 'יתכנו נהגים נוספים שאישרו';
       } else {
-        // chosen - נבחרתי!
+        // chosen - נבחרתי! העסק אישר אותי
         bannerColor = 'linear-gradient(135deg,#22c55e,#16a34a)';
         bannerShadow = '0 6px 24px rgba(34,197,94,.45)';
-        bannerIcon = '🥳'; bannerTitle = 'נבחרת לבצע הובלה!';
+        bannerIcon = '🥳'; bannerTitle = 'עסק אישר!';
         bannerSub = b.shipments?.escrow_paid ? 'מתואם ✓' : 'ממתין לתשלום העסק לנאמנות';
       }
       return `
@@ -2960,7 +2962,7 @@ function getDeliveryStepIndex(status) {
   return DELIVERY_STEPS.findIndex(s => s.key === status);
 }
 
-function renderTrackingBar(shipmentId, status, isDriver, bidStatus) {
+function renderTrackingBar(shipmentId, status, isDriver, bidStatus, escrowPaid) {
   const currentIdx = getDeliveryStepIndex(status);
   if (currentIdx < 0) return '';
 
@@ -2991,6 +2993,14 @@ function renderTrackingBar(shipmentId, status, isDriver, bidStatus) {
             <div style="font-size:18px;margin-bottom:4px">⏳</div>
             <div style="font-size:12px;color:var(--accent);font-weight:700">אישרת! ממתינים לבחירת העסק</div>
             <div style="font-size:10px;color:var(--muted);margin-top:3px">ייתכן שנהגים נוספים אישרו - העסק יבחר אחד מכם</div>
+          </div>`;
+      } else if (bidStatus === 'chosen' && !escrowPaid) {
+        // נבחרתי ע"י העסק אבל הוא עוד לא שילם לנאמנות - אסור לי להתחיל לעדכן סטטוס
+        nextBtn = `
+          <div style="margin-top:10px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:18px;margin-bottom:4px">🔒</div>
+            <div style="font-size:12px;color:var(--accent);font-weight:700">ממתין לתשלום העסק לנאמנות</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px">לאחר התשלום תוכל לעדכן סטטוס איסוף</div>
           </div>`;
       } else {
         // כפתור אישור מיוחד - בולט יותר
@@ -3080,6 +3090,17 @@ async function updateDeliveryStatus(shipmentId, newStatus, btn) {
     loadShipmentsFromDB();
     renderMyShipments();
     return;
+  }
+
+  // הגנה שרתית: אסור לעדכן סטטוס איסוף/בדרך/סופק לפני שהעסק שילם לנאמנות
+  if (['pickup','on_the_way','delivered'].includes(newStatus)) {
+    const { data: ship } = await sb.from('shipments').select('escrow_paid').eq('id', shipmentId).single();
+    if (!ship?.escrow_paid) {
+      showToast('🔒 לא ניתן לעדכן סטטוס לפני שהעסק שילם לנאמנות', '#f59e0b');
+      btn.disabled = false;
+      btn.textContent = 'נסה שוב';
+      return;
+    }
   }
 
   const { error } = await sb.from('shipments').update({ status: newStatus }).eq('id', shipmentId);
