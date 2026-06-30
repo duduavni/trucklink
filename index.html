@@ -866,6 +866,28 @@ function showToast(msg,color='var(--green)'){
   setTimeout(()=>t.remove(),3000);
 }
 
+// ── צליל קבלת תשלום - שני צלילים עולים, ללא קובץ חיצוני ──
+function playPaymentSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [880, 1318.5]; // A5 → E6, צליל "צ'ינג" שמח
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const start = ctx.currentTime + i * 0.12;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+      osc.start(start);
+      osc.stop(start + 0.4);
+    });
+  } catch (e) { /* דפדפן לא תומך - לא נורא */ }
+}
+
 // ── Render Markers ──
 function renderMarkers() {
   // clear old
@@ -1856,13 +1878,13 @@ async function loadDriverStats() {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data } = await sb
     .from('bids')
-    .select('price, shipments(status, updated_at)')
+    .select('price, shipments(status, driver_paid, driver_paid_at)')
     .eq('driver_id', currentUser.id)
-    .eq('status', 'accepted');
+    .eq('status', 'chosen');
   if (!data) return;
   const weeklyTotal = data
-    .filter(b => ['delivered','done'].includes(b.shipments?.status) && b.shipments?.updated_at > weekAgo)
-    .reduce((sum, b) => sum + (b.price || 0), 0);
+    .filter(b => b.shipments?.driver_paid && b.shipments?.driver_paid_at > weekAgo)
+    .reduce((sum, b) => sum + Math.round((b.price || 0) * 0.90), 0);
   const el = document.getElementById('weekly-income');
   if (el) el.textContent = `₪${weeklyTotal.toLocaleString('he-IL')}`;
 }
@@ -2574,7 +2596,22 @@ function subscribeRealtime() {
       }
     })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'shipments' }, payload => {
-      if (currentProfile?.role === 'driver') loadShipmentsFromDB();
+      if (currentProfile?.role === 'driver') {
+        loadShipmentsFromDB();
+        // התשלום הועבר אליי - נגן צליל, הצג הודעה חגיגית, רענן הכנסה שבועית
+        if (payload.new.driver_paid && !payload.old?.driver_paid) {
+          // ודא שזו ההובלה שלי (יש לי bid שהוא chosen על ההובלה הזו)
+          sb.from('bids').select('price').eq('shipment_id', payload.new.id).eq('driver_id', currentUser.id).eq('status','chosen').maybeSingle()
+            .then(({ data: myBid }) => {
+              if (!myBid) return;
+              const net = Math.round(myBid.price * 0.90);
+              playPaymentSound();
+              showToast(`💰 קיבלת תשלום! ₪${net} נכנס לחשבון`, '#22c55e');
+              sendLocalNotification('💰 תשלום התקבל!', `₪${net} הועבר לחשבונך`);
+              loadDriverStats();
+            });
+        }
+      }
       if (currentProfile?.role === 'business' && payload.new.business_id === currentUser.id) {
         loadShipmentsFromDB();
         if (payload.new.status === 'delivered') {
