@@ -120,10 +120,14 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 #tab-all, #tab-near, #tab-mine { transition:all .18s; }
 
 @media (max-width:768px) {
-  #sidebar { width:100%; height:55vh; position:absolute; bottom:0; top:auto; right:0; left:0; border-radius:20px 20px 0 0; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 -4px 20px rgba(0,0,0,.1); }
-  #map-wrap { width:100%; height:100%; min-width:unset; border-left:none; }
+  #main { flex-direction:column !important; }
+  #map-wrap { width:100% !important; height:42vh !important; min-width:unset !important; border-left:none !important; flex-shrink:0 !important; }
+  #sidebar { width:100% !important; height:58vh !important; position:relative !important; bottom:auto !important; top:auto !important; right:auto !important; left:auto !important; border-radius:20px 20px 0 0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; box-shadow:0 -4px 20px rgba(0,0,0,.1) !important; pointer-events:all !important; }
   #list { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; }
   #my-shipments-tab { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; pointer-events:all !important; }
+  #route-info { left:8px !important; right:8px !important; top:8px !important; min-width:unset !important; }
+  #hint { display:none !important; }
+  .earn-item .val { font-size:15px !important; }
 }
 </style>
 </head>
@@ -167,7 +171,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
         <div class="ri-stat"><div class="ri-stat-icon">⚖️</div><div class="ri-stat-val" id="ri-weight"></div></div>
         <div class="ri-stat"><div class="ri-stat-icon">📅</div><div class="ri-stat-val" id="ri-date"></div></div>
       </div>
-      <div id="ri-desc" style="display:none;font-size:12px;color:var(--light);line-height:1.5;padding:8px 0;border-top:1px solid rgba(255,255,255,.1);margin-top:2px"></div>
+      <div id="ri-desc" style="display:none;font-size:12px;color:var(--muted);line-height:1.5;padding:8px 0;border-top:1px solid rgba(255,255,255,.1);margin-top:2px"></div>
       <div id="ri-note" style="display:none;font-size:11px;color:var(--accent);line-height:1.5;padding:6px 8px;background:rgba(245,166,35,.08);border-radius:8px;margin-top:4px;border:1px solid rgba(245,166,35,.2)"></div>
       <div id="ri-images" style="display:none;gap:6px;overflow-x:auto;padding:2px 0 6px"></div>
       <div class="ri-earn">
@@ -223,7 +227,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
     </div>
 
     <!-- NEAR ME PANEL (hidden by default) -->
-    <div id="near-panel" style="display:none;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(8,9,20,.88);backdrop-filter:blur(12px);flex-shrink:0;pointer-events:all">
+    <div id="near-panel" style="display:none;padding:10px 12px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;pointer-events:all">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:6px">
           <span id="radius-badge" style="font-size:10px;background:rgba(245,166,35,.15);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:700;display:none"></span>
@@ -255,7 +259,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
     </div>
 
     <!-- REGION FILTER CHIPS -->
-    <div id="region-chips" style="padding:8px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;background:rgba(8,9,20,.75);backdrop-filter:blur(8px);pointer-events:all">
+    <div id="region-chips" style="padding:8px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0;background:#fff;pointer-events:all">
       <button class="filter-btn active" onclick="setFilter('all',this)">הכל</button>
       <button class="filter-btn" onclick="setFilter('north',this)">🌿 צפון</button>
       <button class="filter-btn" onclick="setFilter('center',this)">🏙️ מרכז</button>
@@ -325,7 +329,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
       <div><div id="bid-title" style="font-weight:800;font-size:17px"></div>
         <div id="bid-label" style="color:var(--muted);font-size:11px;margin-top:2px"></div></div>
-      <button onclick="closeBid()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
+      <button onclick="closeBid()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
     </div>
     <div id="bid-route-card" style="border-radius:13px;padding:14px;margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;direction:ltr">
@@ -337,10 +341,10 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
         </div>
         <div style="flex:1;text-align:center"><div style="color:var(--muted);font-size:10px;margin-bottom:2px">יעד</div><div id="bid-to" style="font-weight:800;font-size:14px"></div></div>
       </div>
-      <div id="bid-desc" style="display:none;font-size:11px;color:var(--light);line-height:1.5;padding-top:8px;border-top:1px solid var(--border)"></div>
+      <div id="bid-desc" style="display:none;font-size:11px;color:var(--muted);line-height:1.5;padding-top:8px;border-top:1px solid var(--border)"></div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:12px;color:var(--light);margin-bottom:8px">המחיר שלך (₪)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">המחיר שלך (₪)</div>
       <div style="display:flex;align-items:center;gap:8px">
         <button onclick="adjustPrice(-50)" style="width:42px;height:42px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:20px">−</button>
         <div id="bid-price-display" style="flex:1;background:var(--card);border-radius:11px;padding:10px;text-align:center"></div>
@@ -721,7 +725,7 @@ async function renderMyShipments() {
       : 'rgba(34,197,94,.25)';
 
     return `
-    <div style="background:rgba(21,25,40,.85);border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;backdrop-filter:blur(10px)">
+    <div style="background:#fff;border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
       <div onclick="toggleMyShipment('ms-${idx}')" style="padding:11px 12px;display:flex;align-items:center;gap:8px;cursor:pointer">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:13px;direction:ltr;text-align:right">${s.from_city||''} → ${s.to_city||''}</div>
@@ -733,13 +737,13 @@ async function renderMyShipments() {
           <span id="ms-arrow-${idx}" style="color:var(--muted);font-size:11px">▼</span>
         </div>
       </div>
-      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid rgba(255,255,255,.06);max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
+      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
-          ${s.weight ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">⚖️ ${s.weight}ק"ג</span>` : ''}
-          ${s.pickup_date ? `<span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
-          <span style="background:var(--deep);border-radius:6px;padding:3px 8px;font-size:11px">🏢 עסק מאומת ✓</span>
+          ${s.weight ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">⚖️ ${s.weight}ק"ג</span>` : ''}
+          ${s.pickup_date ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
+          <span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">🏢 עסק מאומת ✓</span>
         </div>
-        ${s.description ? `<div style="font-size:11px;color:var(--light);margin-bottom:8px;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:7px">📝 ${s.description}</div>` : ''}
+        ${s.description ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:#f8fafc;border-radius:7px">📝 ${s.description}</div>` : ''}
         ${imagesHtml}
         <div style="display:flex;gap:6px;margin-top:8px">
           ${s.escrow_paid
@@ -747,7 +751,7 @@ async function renderMyShipments() {
                 style="flex:1;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
                 ${badgeHtml} 💬 צ'אט עם העסק
               </button>`
-            : `<div style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;font-size:11px;text-align:center">
+            : `<div style="flex:1;background:#f8fafc;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;font-size:11px;text-align:center">
                 🔒 צ'אט יפתח אחרי תשלום העסק לנאמנות
               </div>`}
           ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
@@ -980,7 +984,7 @@ function renderList() {
           <div style="font-size:11px;color:var(--green);font-weight:600">נטו ₪${net}</div>
         </div>
       </div>
-      ${s.description ? `<div style="font-size:11px;color:var(--light);margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;background:rgba(255,255,255,.04);border-radius:6px">"${s.description}"</div>` : ''}
+      ${s.description ? `<div style="font-size:11px;color:var(--muted);margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;background:#f8fafc;border-radius:6px">"${s.description}"</div>` : ''}
       ${hasBid
         ? `<div style="background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;text-align:center">✓ הצעה הוגשה — ממתין לתגובת העסק</div>`
         : `<button onclick="event.stopPropagation();openBid(SHIPMENTS.find(x=>x.id==='${s.id}'))"
@@ -1247,7 +1251,7 @@ function editShipment(id) {
     <div style="background:var(--deep);border:1px solid var(--border);border-radius:24px;padding:24px;width:100%;max-width:440px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <div style="font-weight:800;font-size:18px">✏️ עריכת הובלה</div>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
       </div>
 
       ${isLocked ? `<div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--accent);line-height:1.5">
@@ -1256,13 +1260,13 @@ function editShipment(id) {
 
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <div style="flex:1;position:relative">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">📍 מאיפה?</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">📍 מאיפה?</div>
           <input id="edit-from" value="${s.from}" style="${INP};${lockedStyle}" autocomplete="off" ${lockedAttr}
             oninput="showCitySuggest(this,'edit-from-list')" onblur="setTimeout(()=>hideSuggest('edit-from-list'),200)">
           <div id="edit-from-list" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--accent);border-radius:0 0 9px 9px;max-height:180px;overflow-y:auto;z-index:999"></div>
         </div>
         <div style="flex:1;position:relative">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">🏁 לאיפה?</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">🏁 לאיפה?</div>
           <input id="edit-to" value="${s.to}" style="${INP};${lockedStyle}" autocomplete="off" ${lockedAttr}
             oninput="showCitySuggest(this,'edit-to-list')" onblur="setTimeout(()=>hideSuggest('edit-to-list'),200)">
           <div id="edit-to-list" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--accent);border-radius:0 0 9px 9px;max-height:180px;overflow-y:auto;z-index:999"></div>
@@ -1271,23 +1275,23 @@ function editShipment(id) {
 
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <div style="flex:1">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">⚖️ משקל (ק"ג)</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">⚖️ משקל (ק"ג)</div>
           <input id="edit-weight" type="number" value="${s.weight}" style="${INP};${lockedStyle}" ${lockedAttr}>
         </div>
         <div style="flex:1">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">₪ מחיר בסיס</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">₪ מחיר בסיס</div>
           <input id="edit-price" type="number" value="${s.price}" style="${INP};${lockedStyle}" ${lockedAttr}>
         </div>
       </div>
 
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">📝 תיאור / הערות</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:5px">📝 תיאור / הערות</div>
         <textarea id="edit-title" rows="2"
           style="width:100%;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:inherit;direction:rtl;resize:none">${s.title}</textarea>
       </div>
 
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">📊 סטטוס</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:5px">📊 סטטוס</div>
         <select id="edit-status" style="${INP};${lockedStyle}" ${lockedAttr}>
           <option value="open"      ${s.status==='open'      ?'selected':''}>⏳ ממתין להצעות</option>
           <option value="bidding"   ${s.status==='bidding'   ?'selected':''}>💬 יש הצעות</option>
@@ -1298,7 +1302,7 @@ function editShipment(id) {
 
       <div style="display:flex;gap:10px">
         <button onclick="this.closest('[style*=fixed]').remove()"
-          style="flex:1;background:transparent;border:1px solid var(--border);color:var(--light);border-radius:10px;padding:13px;cursor:pointer;font-family:inherit;font-size:13px">ביטול</button>
+          style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:13px;cursor:pointer;font-family:inherit;font-size:13px">ביטול</button>
         <button onclick="saveEditShipment('${id}',this,${isLocked})"
           style="flex:2;background:var(--accent);border:none;color:var(--black);border-radius:10px;padding:13px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px">
           💾 שמור שינויים
@@ -1374,7 +1378,7 @@ function deleteShipment(id, btn) {
       <div style="color:var(--muted);font-size:13px;margin-bottom:24px">פעולה זו לא ניתנת לביטול</div>
       <div style="display:flex;gap:10px">
         <button onclick="this.closest('[style*=fixed]').remove()"
-          style="flex:1;background:transparent;border:1px solid var(--border);color:var(--light);border-radius:10px;padding:12px;cursor:pointer;font-family:inherit">ביטול</button>
+          style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:12px;cursor:pointer;font-family:inherit">ביטול</button>
         <button onclick="confirmDelete('${id}',this)"
           style="flex:1;background:#ef4444;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800">מחק</button>
       </div>
@@ -1433,7 +1437,7 @@ async function showConfirmedDrivers(shipmentId) {
           <div style="font-weight:800;font-size:17px">🤝 נהגים שאישרו</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">בחר נהג אחד שיבצע את ההובלה</div>
         </div>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
       </div>
       <div id="confirmed-drivers-loading" style="text-align:center;color:var(--muted);padding:20px">⏳ טוען...</div>
       <div id="confirmed-drivers-list"></div>
@@ -1474,7 +1478,7 @@ async function showConfirmedDrivers(shipmentId) {
           <div style="flex:1">
             <div style="font-weight:700;font-size:13px">${name}</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px">⭐${rating} · אישר שזמין ✓</div>
-            ${bid.note?`<div style="font-size:11px;color:var(--light);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
+            ${bid.note?`<div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
           </div>
           <div style="text-align:left;flex-shrink:0">
             <div style="font-family:monospace;font-weight:800;font-size:18px;color:var(--accent)">₪${bid.price}</div>
@@ -1533,7 +1537,7 @@ async function showBids(id) {
     <div style="background:var(--deep);border:1px solid var(--border);border-radius:24px;padding:20px;width:100%;max-width:440px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div style="font-weight:800;font-size:17px">💬 הצעות שהתקבלו</div>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
       </div>
       <div id="bids-loading" style="text-align:center;color:var(--muted);padding:20px">⏳ טוען הצעות...</div>
       <div id="bids-list"></div>
@@ -1589,7 +1593,7 @@ async function showBids(id) {
             <div style="flex:1">
               <div style="font-weight:700;font-size:13px">${name}</div>
               <div style="font-size:11px;color:var(--muted);margin-top:2px">⭐${rating} · נהג מאומת ✓</div>
-              ${bid.note?`<div style="font-size:11px;color:var(--light);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
+              ${bid.note?`<div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
             </div>
             <div style="text-align:left;flex-shrink:0">
               <div style="font-family:monospace;font-weight:800;font-size:18px;color:var(--accent)">₪${bid.price}</div>
@@ -1631,7 +1635,7 @@ async function showBids(id) {
           <div style="flex:1">
             <div style="font-weight:700;font-size:13px">${driverLabel}</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px">⭐${rating} · נהג מאומת ✓</div>
-            ${bid.note?`<div style="font-size:11px;color:var(--light);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
+            ${bid.note?`<div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">"${bid.note}"</div>`:''}
           </div>
           <div style="text-align:left;flex-shrink:0">
             <div style="font-family:monospace;font-weight:800;font-size:18px;color:var(--accent)">₪${bid.price}</div>
@@ -1716,19 +1720,19 @@ function openNewShipment() {
       <!-- Header -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <div style="font-weight:800;font-size:18px">📦 הובלה חדשה</div>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
       </div>
 
       <!-- Route -->
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <div style="flex:1;position:relative">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">📍 מאיפה?</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">📍 מאיפה?</div>
           <input id="ns-from" placeholder="הקלד עיר מוצא..." style="${INP}" autocomplete="off"
             oninput="showCitySuggest(this,'ns-from-list')" onblur="setTimeout(()=>hideSuggest('ns-from-list'),200)">
           <div id="ns-from-list" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--accent);border-radius:0 0 9px 9px;max-height:180px;overflow-y:auto;z-index:999"></div>
         </div>
         <div style="flex:1;position:relative">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">🏁 לאיפה?</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">🏁 לאיפה?</div>
           <input id="ns-to" placeholder="הקלד עיר יעד..." style="${INP}" autocomplete="off"
             oninput="showCitySuggest(this,'ns-to-list')" onblur="setTimeout(()=>hideSuggest('ns-to-list'),200)">
           <div id="ns-to-list" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--accent);border-radius:0 0 9px 9px;max-height:180px;overflow-y:auto;z-index:999"></div>
@@ -1738,11 +1742,11 @@ function openNewShipment() {
       <!-- Weight + Date + Price -->
       <div style="display:flex;gap:10px;margin-bottom:12px">
         <div style="flex:1">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">⚖️ משקל (ק"ג)</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">⚖️ משקל (ק"ג)</div>
           <input id="ns-weight" type="number" placeholder="500" style="${INP}">
         </div>
         <div style="flex:1">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">📅 תאריך</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">📅 תאריך</div>
           <input id="ns-date" type="date" style="${INP}">
           <div style="display:flex;gap:4px;margin-top:4px">
             <button type="button" onclick="document.getElementById('ns-date').value=new Date().toISOString().split('T')[0]"
@@ -1752,14 +1756,14 @@ function openNewShipment() {
           </div>
         </div>
         <div style="flex:1">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">₪ מחיר בסיס</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">₪ מחיר בסיס</div>
           <input id="ns-price" type="number" placeholder="600" style="${INP}">
         </div>
       </div>
 
       <!-- Vehicle type -->
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:7px">🚛 סוג רכב נדרש</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:7px">🚛 סוג רכב נדרש</div>
         <div style="display:flex;gap:7px">
           ${[['any','🚐 כלשהו'],['van','🚐 ואן'],['small','🚛 קטנה'],['large','🚚 גדולה']].map(([v,l])=>`
           <button onclick="selectVehicle('${v}',this)" data-v="${v}"
@@ -1769,7 +1773,7 @@ function openNewShipment() {
 
       <!-- Description -->
       <div style="margin-bottom:14px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">📝 תיאור המוצר</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:5px">📝 תיאור המוצר</div>
         <textarea id="ns-desc" placeholder="תאר את הסחורה – סוג, כמות, מידות, הוראות טיפול..." rows="3"
           style="width:100%;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:inherit;direction:rtl;resize:none;line-height:1.5"></textarea>
         <div style="font-size:10px;color:var(--muted);margin-top:3px">פירוט טוב מושך יותר נהגים ומחירים טובים יותר</div>
@@ -1777,14 +1781,14 @@ function openNewShipment() {
 
       <!-- Image upload -->
       <div style="margin-bottom:20px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:7px">📸 תמונות המוצר (אופציונלי)</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:7px">📸 תמונות המוצר (אופציונלי)</div>
         <div id="img-drop-zone" onclick="document.getElementById('ns-img').click()"
           style="border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--card)"
           ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
           ondragleave="this.style.borderColor='var(--border)'"
           ondrop="handleImgDrop(event)">
           <div style="font-size:28px;margin-bottom:6px">📷</div>
-          <div style="font-size:13px;color:var(--light);font-weight:600">לחץ להעלאת תמונה</div>
+          <div style="font-size:13px;color:var(--muted);font-weight:600">לחץ להעלאת תמונה</div>
           <div style="font-size:11px;color:var(--muted);margin-top:3px">או גרור לכאן · JPG, PNG עד 5MB</div>
           <input type="file" id="ns-img" accept="image/*" multiple style="display:none" onchange="handleImgSelect(this)">
         </div>
@@ -1794,7 +1798,7 @@ function openNewShipment() {
 
       <!-- Notes -->
       <div style="margin-bottom:20px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">💬 הערות לנהג (אופציונלי)</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:5px">💬 הערות לנהג (אופציונלי)</div>
         <input id="ns-notes" placeholder="גישה לחנייה, קומה, מעלית, פירוק/הרכבה..." style="${INP}">
       </div>
 
@@ -1869,7 +1873,7 @@ function submitNewShipment(btn) {
         <span style="color:var(--muted);font-size:12px">מחיר בסיס</span>
         <span style="font-family:monospace;font-weight:800;color:var(--accent)">₪${price}</span>
       </div>`:''}
-      ${desc?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--light);line-height:1.5">${desc}</div>`:''}
+      ${desc?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.5">${desc}</div>`:''}
       ${imgs?`<div style="margin-top:6px;font-size:11px;color:var(--green)">📸 ${imgs} תמונות צורפו</div>`:''}
     </div>
     <div style="color:var(--muted);font-size:13px;margin-bottom:20px">נהגים באזורך יראו אותה עכשיו ויגישו הצעות</div>
@@ -1894,7 +1898,7 @@ function setMode(mode) {
     sidebarEl.style.display = 'flex';
     bizEl.style.display     = 'none';
     btnD.style.background   = 'var(--accent)';
-    btnD.style.color        = 'var(--black)';
+    btnD.style.color        = '#fff';
     btnB.style.background   = 'transparent';
     btnB.style.color        = 'var(--muted)';
   } else {
@@ -1904,7 +1908,7 @@ function setMode(mode) {
     btnD.style.background   = 'transparent';
     btnD.style.color        = 'var(--muted)';
     btnB.style.background   = 'var(--accent)';
-    btnB.style.color        = 'var(--black)';
+    btnB.style.color        = '#fff';
 
     // Init business map once
     if (!bMap) {
@@ -2032,11 +2036,11 @@ function showAuthModal() {
       <!-- Login Form -->
       <div id="auth-login">
         <div style="margin-bottom:12px">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">אימייל</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">אימייל</div>
           <input id="login-email" type="email" placeholder="israel@example.com" style="${AUTH_INP}">
         </div>
         <div style="margin-bottom:8px">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">סיסמה</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">סיסמה</div>
           <input id="login-password" type="password" placeholder="••••••••" style="${AUTH_INP}">
         </div>
         <div style="text-align:left;margin-bottom:16px">
@@ -2062,19 +2066,19 @@ function showAuthModal() {
           </div>
         </div>
         <div style="margin-bottom:12px">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">שם מלא</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">שם מלא</div>
           <input id="reg-name" placeholder="ישראל ישראלי" style="${AUTH_INP}">
         </div>
         <div style="margin-bottom:12px">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">טלפון</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">טלפון</div>
           <input id="reg-phone" type="tel" placeholder="0501234567" style="${AUTH_INP}">
         </div>
         <div style="margin-bottom:12px">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">אימייל</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">אימייל</div>
           <input id="reg-email" type="email" placeholder="israel@example.com" style="${AUTH_INP}">
         </div>
         <div style="margin-bottom:20px">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">סיסמה</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">סיסמה</div>
           <input id="reg-password" type="password" placeholder="לפחות 6 תווים" style="${AUTH_INP}">
         </div>
         <div id="reg-error" style="color:var(--red);font-size:12px;margin-bottom:10px;display:none"></div>
@@ -2214,7 +2218,7 @@ function showForgotPassword() {
       </div>
 
       <div style="margin-bottom:12px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">אימייל</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:5px">אימייל</div>
         <input id="forgot-email" type="email" placeholder="israel@example.com" style="${AUTH_INP}">
       </div>
 
@@ -2225,7 +2229,7 @@ function showForgotPassword() {
         שלח קישור לאיפוס
       </button>
       <button onclick="closeForgotPassword()"
-        style="width:100%;background:transparent;border:1px solid var(--border);color:var(--light);border-radius:11px;padding:12px;font-family:inherit;font-size:13px;cursor:pointer">
+        style="width:100%;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:11px;padding:12px;font-family:inherit;font-size:13px;cursor:pointer">
         חזרה לכניסה
       </button>
     </div>`;
@@ -2280,11 +2284,11 @@ function showUpdatePasswordModal() {
       </div>
 
       <div style="margin-bottom:12px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">סיסמה חדשה</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:5px">סיסמה חדשה</div>
         <input id="new-password" type="password" placeholder="••••••••" style="${AUTH_INP}">
       </div>
       <div style="margin-bottom:16px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">אימות סיסמה</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:5px">אימות סיסמה</div>
         <input id="confirm-password" type="password" placeholder="••••••••" style="${AUTH_INP}">
       </div>
 
@@ -2917,7 +2921,7 @@ async function openChat(shipmentId, otherUserName) {
             </div>
           </div>
         </div>
-        <button onclick="closeChat()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:16px;min-width:44px;min-height:44px">✕</button>
+        <button onclick="closeChat()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:16px;min-width:44px;min-height:44px">✕</button>
       </div>
       <!-- messages -->
       <div id="chat-messages" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:flex;flex-direction:column;gap:10px">
@@ -3101,7 +3105,7 @@ function renderTrackingBar(shipmentId, status, isDriver, bidStatus, escrowPaid) 
     const textCol = done || active ? 'var(--text)' : 'var(--muted)';
     return `
       <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:3px">
-        <div style="width:28px;height:28px;border-radius:50%;background:${done?'var(--green)':active?'var(--accent)':'var(--card)'};border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s">
+        <div style="width:28px;height:28px;border-radius:50%;background:${done?'var(--green)':active?'var(--accent)':'#fff'};border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s;color:${done||active?'#fff':'var(--muted)'}">
           ${done ? '✓' : step.icon}
         </div>
         <div style="font-size:9px;color:${textCol};text-align:center;font-weight:${active?'700':'400'}">${step.label}</div>
@@ -3156,8 +3160,8 @@ function renderTrackingBar(shipmentId, status, isDriver, bidStatus, escrowPaid) 
   }
 
   return `
-    <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;margin-top:8px">
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600">מעקב הובלה</div>
+    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:8px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">מעקב הובלה</div>
       <div style="display:flex;align-items:center">${steps}</div>
       ${nextBtn}
     </div>`;
@@ -3255,7 +3259,7 @@ function openDeliveryProofModal(shipmentId, triggerBtn) {
           <div style="font-weight:800;font-size:17px">📸 אסמכתא למסירה</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">צרף תמונה/מסמך כהוכחה שההובלה בוצעה</div>
         </div>
-        <button onclick="document.getElementById('proof-overlay').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit">✕</button>
+        <button onclick="document.getElementById('proof-overlay').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit">✕</button>
       </div>
 
       <!-- אזור העלאה -->
@@ -3421,7 +3425,7 @@ function openRatingModal(shipmentId, driverName, driverId) {
 
       <div style="display:flex;gap:10px">
         <button onclick="this.closest('[style*=fixed]').remove()"
-          style="flex:1;background:transparent;border:1px solid var(--border);color:var(--light);border-radius:10px;padding:12px;cursor:pointer;font-family:inherit">ביטול</button>
+          style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:12px;cursor:pointer;font-family:inherit">ביטול</button>
         <button id="submit-rating-btn" onclick="submitRating('${shipmentId}','${driverId}',this)"
           style="flex:2;background:var(--accent);border:none;color:var(--black);border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px">שלח דירוג</button>
       </div>
@@ -3481,7 +3485,7 @@ function openEscrowPaymentModal(shipmentId, amount) {
     <div style="background:var(--deep);border:1px solid var(--border);border-radius:24px;padding:24px;width:100%;max-width:420px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <div style="font-weight:800;font-size:18px">🔒 תשלום לנאמנות</div>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
       </div>
 
       <div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--accent);line-height:1.5">
@@ -3497,19 +3501,19 @@ function openEscrowPaymentModal(shipmentId, amount) {
 
       <!-- פרטי כרטיס -->
       <div style="margin-bottom:12px">
-        <div style="font-size:12px;color:var(--light);margin-bottom:5px">מספר כרטיס</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:5px">מספר כרטיס</div>
         <input placeholder="•••• •••• •••• ••••" maxlength="19"
           oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/(.{4})/g,'$1 ').trim()"
           style="width:100%;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:15px;outline:none;font-family:monospace;letter-spacing:2px">
       </div>
       <div style="display:flex;gap:10px;margin-bottom:20px">
         <div style="flex:1">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">תוקף</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">תוקף</div>
           <input placeholder="MM/YY" maxlength="5"
             style="width:100%;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:14px;outline:none;font-family:monospace;text-align:center">
         </div>
         <div style="flex:1">
-          <div style="font-size:12px;color:var(--light);margin-bottom:5px">CVV</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:5px">CVV</div>
           <input placeholder="•••" maxlength="3" type="password"
             style="width:100%;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:14px;outline:none;font-family:monospace;text-align:center">
         </div>
@@ -3568,7 +3572,7 @@ function openReleasePaymentModal(shipmentId, amount, driverName) {
     <div style="background:var(--deep);border:1px solid var(--border);border-radius:24px;padding:24px;width:100%;max-width:420px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <div style="font-weight:800;font-size:18px">💸 העברת תשלום לנהג</div>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--light);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
+        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit">✕</button>
       </div>
 
       <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--green);line-height:1.5">
@@ -3648,7 +3652,7 @@ window.renderBList = function() {
           const chatLocked = !s.escrow_paid;
           const chatBtn = chatLocked
             ? `<button onclick="showToast('🔒 הצ\\'אט ייפתח לאחר תשלום לנאמנות','#f59e0b')"
-                style="flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600">
+                style="flex:1;background:#f8fafc;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600">
                 🔒 צ'אט (נעול)
               </button>`
             : `<button onclick="openChat('${s.id}','${s.acceptedDriverName||'נהג'}')" data-chat-shipment="${s.id}"
@@ -3701,20 +3705,4 @@ document.addEventListener('DOMContentLoaded', () => {
   if (topbar) {
     const userBtn = document.createElement('button');
     userBtn.onclick = showUserMenu;
-    userBtn.style.cssText = 'background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:12px;display:flex;align-items:center;gap:6px;max-width:200px';
-    userBtn.innerHTML = '👤 <span id="user-name-btn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">כניסה</span>';
-    topbar.appendChild(userBtn);
-    updateUserBtn();
-  }
-});
-
-// ── INIT ─────────────────────────────────────────────────────
-initAuth().then(() => {
-  subscribeRealtime();
-  loadShipmentsFromDB();
-  addNotificationBtn();
-  requestNotificationPermission();
-});
-</script>
-</body>
-</html>
+    userBtn.style.cssText = 'background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:12px;display:flex;al
