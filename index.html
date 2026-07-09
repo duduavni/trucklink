@@ -49,7 +49,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 #hint { position:absolute; bottom:16px; right:12px; z-index:500; background:rgba(8,10,18,.85); border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:11px; color:var(--muted); }
 
 /* SIDEBAR */
-#sidebar { width:300px; background:transparent; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; position:absolute; right:0; top:0; bottom:0; z-index:400; pointer-events:none; }
+#sidebar { width:360px; background:transparent; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0; position:absolute; right:0; top:0; bottom:0; z-index:400; pointer-events:none; }
 #earnings { padding:10px 14px; border-bottom:1px solid rgba(255,255,255,.08); background:rgba(8,9,20,.88); backdrop-filter:blur(12px); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; pointer-events:all; }
 .earn-item .label { font-size:10px; color:var(--muted); }
 .earn-item .val { font-family:monospace; font-weight:800; font-size:17px; color:var(--accent); }
@@ -162,22 +162,22 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
       <button class="btn-bid" id="ri-bid-btn" onclick="openBidFromRoute()"></button>
     </div>
 
-    <div id="hint">לחץ על 📦 להגשת הצעה</div>
+    <div id="hint" style="position:absolute;bottom:16px;right:12px;z-index:500;background:rgba(8,10,18,.9);border:1px solid var(--border);border-radius:10px;padding:7px 14px;font-size:12px;color:var(--muted)">📦 לחץ על הובלה במפה להגשת הצעה</div>
   </div>
 
   <!-- SIDEBAR -->
   <div id="sidebar">
 
     <!-- EARNINGS BAR -->
-    <div id="earnings" style="padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(245,166,35,.04);display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
-      <div class="earn-item">
+    <div id="earnings" style="padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(8,9,20,.92);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;pointer-events:all">
+      <div class="earn-item" style="cursor:pointer" onclick="switchTab('all')">
         <div class="label">הכנסה השבוע</div>
         <div class="val" id="weekly-income">₪0</div>
       </div>
-      <div class="earn-item" style="cursor:pointer;text-align:center" onclick="setFilter('mine', document.getElementById('my-shipments-btn'))">
-        <div class="label">ההובלות שלי</div>
+      <div class="earn-item" style="cursor:pointer;text-align:center" onclick="switchTab('mine')">
+        <div class="label">הובלות פעילות</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-top:2px">
-          <div class="val2" id="my-shipments-count">0</div>
+          <div class="val2" id="my-shipments-count" style="font-size:20px;font-weight:800;color:var(--accent)">0</div>
           <div id="my-envelope-wrap" style="display:none;position:relative">
             <span style="font-size:18px">✉️</span>
             <span id="my-unread-badge" style="position:absolute;top:-6px;right:-8px;background:#ef4444;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1"></span>
@@ -435,7 +435,7 @@ let routeLayer    = null;
 let popup         = null;
 
 // ── Init Map ──
-const map = L.map('map', { center:[31.8,35.0], zoom:7, zoomControl:true });
+const map = L.map('map', { center:[31.5,35.0], zoom:8, zoomControl:true });
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:19
@@ -518,7 +518,7 @@ function selectShipment(id) {
     document.getElementById('route-info').style.display='none';
     document.getElementById('hint').style.display='block';
     drawRoute(null);
-    map.setView([31.8,35.0],7);
+    map.setView([31.5,35.0],8);
     return;
   }
 
@@ -665,7 +665,11 @@ async function renderMyShipments() {
     .in('status', ['accepted', 'driver_confirmed', 'chosen']);
 
   if (error || !data || !data.length) {
-    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">אין הובלות שנבחרת לבצע עדיין</div>';
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:40px 20px">
+      <div style="font-size:48px;margin-bottom:12px">🚛</div>
+      <div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:6px">אין הובלות פעילות</div>
+      <div style="font-size:12px;line-height:1.6">עבור ל<strong style="color:var(--accent)">כל ההובלות</strong><br>ובחר הובלה שמתאימה לך</div>
+    </div>`;
     return;
   }
 
@@ -681,22 +685,32 @@ async function renderMyShipments() {
       ? `<div style="display:flex;gap:4px;overflow-x:auto;margin-top:6px">
           ${s.image_urls.map(url => `<img src="${url}" onclick="window.open('${url}','_blank')" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;cursor:pointer">`).join('')}
         </div>` : '';
-    let myLabel, myColor;
+    let myLabel, myColor, myNextAction = '';
     if (b.status === 'driver_confirmed') {
       myLabel = '⏳ אישרת - ממתין לבחירת העסק'; myColor = 'var(--accent)';
     } else if (s.status === 'accepted' && b.status === 'accepted') {
-      myLabel = '✅ עסק בחר בך - ממתין לאישורך'; myColor = '#f59e0b';
-    } else if (b.status === 'chosen' && s.status === 'driver_confirmed') {
-      myLabel = s.escrow_paid ? '🤝 עסק אישר - מתואם' : '🎉 עסק אישר! ממתין לתשלום לנאמנות'; myColor = 'var(--green)';
+      myLabel = '📨 עסק בחר בך - לחץ לאשר!'; myColor = '#f59e0b';
+    } else if (b.status === 'chosen' && !s.escrow_paid) {
+      myLabel = '🎉 עסק אישר! ממתין לתשלום'; myColor = 'var(--green)';
+    } else if (b.status === 'chosen' && s.escrow_paid && s.status === 'driver_confirmed') {
+      myLabel = '✅ מתואם - עדכן סטטוס איסוף'; myColor = 'var(--green)';
     } else {
       myLabel = getStatusLabel(s.status || 'accepted'); myColor = getStatusColor(s.status || 'accepted');
     }
+
+    const cardBorderColor = b.status === 'accepted' ? 'rgba(245,158,11,.6)'
+      : b.status === 'chosen' && !s.escrow_paid ? 'rgba(34,197,94,.6)'
+      : s.status === 'pickup' ? 'rgba(245,166,35,.4)'
+      : s.status === 'on_the_way' ? 'rgba(59,130,246,.4)'
+      : s.status === 'delivered' ? 'rgba(34,197,94,.5)'
+      : 'rgba(34,197,94,.25)';
+
     return `
-    <div style="background:rgba(21,25,40,.85);border:1px solid rgba(34,197,94,.35);border-radius:12px;overflow:hidden;margin-bottom:8px;backdrop-filter:blur(10px)">
+    <div style="background:rgba(21,25,40,.85);border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;backdrop-filter:blur(10px)">
       <div onclick="toggleMyShipment('ms-${idx}')" style="padding:11px 12px;display:flex;align-items:center;gap:8px;cursor:pointer">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:13px;direction:ltr;text-align:right">${s.from_city||''} → ${s.to_city||''}</div>
-          <div style="font-size:10px;color:${myColor};margin-top:2px">${myLabel}</div>
+          <div style="font-size:11px;color:${myColor};margin-top:3px;font-weight:600">${myLabel}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           ${badgeHtml}
@@ -716,12 +730,11 @@ async function renderMyShipments() {
           ${s.escrow_paid
             ? `<button data-chat-shipment="${b.shipment_id}" onclick="openChatFromBanner(this)" data-shipment-id="${b.shipment_id}" data-business-name="${businessName.replace(/"/g,'&quot;')}"
                 style="flex:1;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
-                ${badgeHtml} 💬 צ'אט
+                ${badgeHtml} 💬 צ'אט עם העסק
               </button>`
-            : `<button onclick="showToast('🔒 הצ\\'אט ייפתח לאחר שהעסק ישלם לנאמנות','#f59e0b')"
-                style="flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600">
-                🔒 צ'אט (ממתין לתשלום)
-              </button>`}
+            : `<div style="flex:1;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;font-size:11px;text-align:center">
+                🔒 צ'אט יפתח אחרי תשלום העסק לנאמנות
+              </div>`}
           ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
         </div>
         ${renderTrackingBar(b.shipment_id, s.status || 'accepted', true, b.status, s.escrow_paid)}
@@ -856,7 +869,7 @@ function clearRadius(){
   currentFilter='all';
   document.querySelectorAll('.filter-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
   renderMarkers(); renderList();
-  map.setView([31.8,35.0],7);
+  map.setView([31.5,35.0],8);
 }
 
 function showToast(msg,color='var(--green)'){
@@ -933,32 +946,33 @@ function renderList() {
     const net    = Math.round(s.price * 0.90);
     const div    = document.createElement('div');
     div.className = 'ship-card' + (isSel ? ' selected' : '');
-    div.style.borderColor = isSel ? color : hasBid ? 'rgba(34,197,94,.5)' : 'var(--border)';
+    div.style.borderColor = isSel ? color : hasBid ? 'rgba(34,197,94,.6)' : 'var(--border)';
+    if (hasBid) div.style.background = 'rgba(21,32,26,.85)';
     div.innerHTML = `
       ${s.urgent && !hasBid ? '<div class="urgent-badge">🔥 דחוף</div>' : ''}
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-            <span style="direction:ltr;display:inline-block">${CITIES[s.fromId].name} → ${CITIES[s.toId].name}</span>
+          <div style="font-weight:800;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right">${CITIES[s.fromId].name} → ${CITIES[s.toId].name}</div>
+          <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap">
+            <span style="background:var(--deep);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--muted)">${s.type.icon} ${s.type.label}</span>
+            <span style="background:var(--deep);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--muted)">⚖️ ${s.weight}ק"ג</span>
+            <span style="background:var(--deep);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--muted)">📏 ${dist}ק"מ</span>
+            <span style="background:var(--deep);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--muted)">📅 ${s.date}</span>
           </div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.type.icon} ${s.type.label} · ⚖️ ${s.weight}ק"ג · 📏 ${dist}ק"מ</div>
         </div>
-        <div style="text-align:left;margin-right:8px;flex-shrink:0">
-          <div style="font-family:monospace;font-weight:800;font-size:16px;color:${color}">₪${s.price}</div>
-          <div style="font-size:10px;color:var(--green)">נטו ₪${net}</div>
+        <div style="text-align:left;margin-right:10px;flex-shrink:0">
+          <div style="font-family:monospace;font-weight:900;font-size:18px;color:${color}">₪${s.price}</div>
+          <div style="font-size:11px;color:var(--green);font-weight:600">נטו ₪${net}</div>
         </div>
       </div>
-      ${s.description ? `<div style="font-size:11px;color:var(--light);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.8">"${s.description}"</div>` : ''}
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:10px;color:var(--muted)">📅 ${s.date}</span>
-        ${hasBid
-          ? `<span style="margin-right:auto;background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.3);border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px">✓ הגשת הצעה · ממתין לתגובה</span>`
-          : `<button onclick="event.stopPropagation();openBid(SHIPMENTS.find(x=>x.id==='${s.id}'))"
-              style="margin-right:auto;background:var(--accent);border:none;color:var(--black);border-radius:7px;padding:5px 14px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800;flex-shrink:0">
-              🚛 הגש הצעה
-            </button>`
-        }
-      </div>`;
+      ${s.description ? `<div style="font-size:11px;color:var(--light);margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;background:rgba(255,255,255,.04);border-radius:6px">"${s.description}"</div>` : ''}
+      ${hasBid
+        ? `<div style="background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;text-align:center">✓ הצעה הוגשה — ממתין לתגובת העסק</div>`
+        : `<button onclick="event.stopPropagation();openBid(SHIPMENTS.find(x=>x.id==='${s.id}'))"
+            style="width:100%;background:var(--accent);border:none;color:var(--black);border-radius:8px;padding:9px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800">
+            🚛 הגש הצעה ₪${s.price}
+          </button>`
+      }`;
     div.onclick = () => selectShipment(s.id);
     list.appendChild(div);
   });
@@ -1089,59 +1103,121 @@ function getStatusColor(s) {
 
 function renderBList() {
   const list = document.getElementById('b-list');
-  const filtered = bFilter === 'all' ? BUSINESS_SHIPMENTS : BUSINESS_SHIPMENTS.filter(s => s.status === bFilter);
+  const filtered = bFilter === 'all' ? BUSINESS_SHIPMENTS : BUSINESS_SHIPMENTS.filter(s => {
+    if (bFilter === 'done') return ['done','delivered'].includes(s.status);
+    if (bFilter === 'bidding') return ['bidding','accepted'].includes(s.status);
+    return s.status === bFilter;
+  });
   list.innerHTML = '';
+
+  if (!filtered.length) {
+    list.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted)">
+      <div style="font-size:40px;margin-bottom:12px">📭</div>
+      <div style="font-weight:600">אין הובלות בקטגוריה זו</div>
+      <div style="font-size:12px;margin-top:6px">לחץ "+ הובלה חדשה" להתחיל</div>
+    </div>`;
+    return;
+  }
+
+  // עדכן את המונים בסטטיסטיקות
+  const active = BUSINESS_SHIPMENTS.filter(s=>['accepted','driver_confirmed','pickup','on_the_way'].includes(s.status)).length;
+  const pending = BUSINESS_SHIPMENTS.filter(s=>['open','bidding'].includes(s.status)).length;
+  const done = BUSINESS_SHIPMENTS.filter(s=>['done','delivered'].includes(s.status)).length;
+  document.getElementById('b-active').textContent = active;
+  document.getElementById('b-pending').textContent = pending;
+  document.getElementById('b-done').textContent = done;
+
   filtered.forEach(s => {
-    const isExpired = s.status === 'open' && s.createdAt && (Date.now() - new Date(s.createdAt).getTime()) > 48 * 60 * 60 * 1000;
+    const isExpired = s.status === 'open' && s.createdAt && (Date.now() - new Date(s.createdAt).getTime()) > 48*60*60*1000;
+    const statusColor = getStatusColor(s.status);
+
+    // כפתור פעולה ראשי - לפי שלב
+    let primaryAction = '';
+    if (s.status === 'open' || s.status === 'bidding') {
+      if (s.bids > 0) {
+        primaryAction = `<button onclick="event.stopPropagation();showBids('${s.id}')"
+          style="width:100%;background:var(--accent);border:none;color:var(--black);border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
+          👀 צפה ב-${s.bids} הצעות ובחר נהג
+        </button>`;
+      } else {
+        primaryAction = `<div style="text-align:center;padding:8px;font-size:12px;color:var(--muted)">⏳ ממתין להצעות מנהגים</div>`;
+      }
+    } else if (s.status === 'accepted') {
+      primaryAction = `<div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--accent);text-align:center">
+        📨 נשלחה בקשת אישור לנהג — ממתין לאישורו
+      </div>`;
+    } else if (s.status === 'driver_confirmed' && !s.escrow_paid) {
+      primaryAction = `<button onclick="event.stopPropagation();openEscrowPaymentModal('${s.id}',${s.finalPrice||s.price})"
+        style="width:100%;background:var(--green);border:none;color:var(--black);border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
+        🔒 שלם לנאמנות ₪${s.finalPrice||s.price} — פתח צ'אט
+      </button>`;
+    } else if (['driver_confirmed','pickup','on_the_way'].includes(s.status) && s.escrow_paid) {
+      primaryAction = `<button onclick="event.stopPropagation();openChat('${s.id}','${(s.acceptedDriverName||'נהג').replace(/'/g,"\\'")}');event.stopPropagation()" data-chat-shipment="${s.id}"
+        style="width:100%;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#93c5fd;border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px">
+        💬 צ'אט עם הנהג
+      </button>`;
+    } else if (s.status === 'delivered' && s.escrow_paid && !s.driver_paid) {
+      primaryAction = `<button onclick="event.stopPropagation();openReleasePaymentModal('${s.id}',${s.finalPrice||s.price},'${(s.acceptedDriverName||'הנהג').replace(/'/g,"\\'")}')"
+        style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:var(--black);border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
+        💸 שחרר תשלום לנהג — ₪${Math.round((s.finalPrice||s.price)*0.90)} נטו
+      </button>`;
+    } else if (s.status === 'done' || s.driver_paid) {
+      primaryAction = `<div style="text-align:center;padding:8px;font-size:12px;color:var(--green);font-weight:700">✅ הובלה הושלמה ותשלום הועבר</div>`;
+    }
+
     const div = document.createElement('div');
-    div.style.cssText = `background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all .18s`;
+    const borderColor = s.status === 'driver_confirmed' && !s.escrow_paid ? 'rgba(34,197,94,.5)'
+      : s.status === 'delivered' ? 'rgba(34,197,94,.35)'
+      : s.bids > 0 && ['open','bidding'].includes(s.status) ? 'rgba(245,166,35,.4)'
+      : 'var(--border)';
+
+    div.style.cssText = `background:var(--card);border:1px solid ${borderColor};border-radius:12px;padding:12px;transition:all .18s;margin-bottom:2px`;
     div.innerHTML = `
+      <!-- header -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div>
-          <div style="font-weight:700;font-size:13px">${s.title}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.title||`${s.from} → ${s.to}`}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px;direction:ltr;text-align:right">${s.from} → ${s.to}</div>
         </div>
-        <div style="text-align:left">
-          <div style="font-family:monospace;font-weight:800;font-size:14px;color:var(--accent)">₪${s.price}</div>
-          <div style="font-size:9px;color:var(--muted)">${s.date}</div>
+        <div style="text-align:left;margin-right:10px;flex-shrink:0">
+          <div style="font-family:monospace;font-weight:800;font-size:15px;color:${s.finalPrice&&s.finalPrice!==s.price?'var(--green)':'var(--accent)'}">₪${s.finalPrice||s.price}</div>
+          ${s.finalPrice && s.finalPrice !== s.price ? `<div style="font-size:9px;color:var(--muted);text-decoration:line-through">₪${s.price}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          ${!['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status) ? `
+          <button onclick="event.stopPropagation();editShipment('${s.id}')"
+            style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 8px;cursor:pointer;font-size:11px">✏️</button>` : ''}
+          <button onclick="event.stopPropagation();deleteShipment('${s.id}',this)"
+            style="background:transparent;border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:7px;padding:5px 8px;cursor:pointer;font-size:11px">🗑️</button>
         </div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:11px;color:${getStatusColor(s.status)};font-weight:600">${getStatusLabel(s.status)}</span>
-        ${s.bids > 0 ? `<span style="font-size:11px;background:rgba(245,166,35,.12);color:var(--accent);border-radius:6px;padding:2px 8px;cursor:pointer" onclick="showBids('${s.id}')">👀 ${s.bids} הצעות</span>` : ''}
+      <!-- status chip -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <span style="font-size:11px;color:${statusColor};font-weight:600;background:${statusColor}18;border-radius:6px;padding:2px 8px">${getStatusLabel(s.status)}</span>
+        <span style="font-size:10px;color:var(--muted)">${s.date}</span>
+        ${isExpired ? `<span style="font-size:10px;color:#fca5a5">⏰ פג תוקף</span>` : ''}
       </div>
-      ${isExpired ? `<div style="margin-top:6px;font-size:11px;color:#fca5a5">⏰ פג תוקף הפרסום (48 שעות) – לא מוצג יותר לנהגים</div>` : ''}
-      ${s.driver ? `<div style="margin-top:6px;font-size:11px;color:var(--green)">🚛 ${s.driver}</div>` : ''}
-      ${s.status === 'accepted' && s.confirmation_expires_at && new Date(s.confirmation_expires_at) < new Date() ? `
-        <div style="margin-top:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px;font-size:11px;color:#fca5a5">
-          ⏰ הנהג לא אישר בזמן
-          <button onclick="reopenShipment('${s.id}')" style="margin-right:8px;background:#ef4444;border:none;color:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">בחר נהג אחר</button>
-        </div>` : ''}
+      <!-- tracking bar (active shipments) -->
       ${['accepted','driver_confirmed','pickup','on_the_way','delivered'].includes(s.status) ? renderTrackingBar(s.id, s.status, false) : ''}
+      <!-- proof images -->
       ${s.status === 'delivered' && s.delivery_proof_urls?.length ? `
-        <div style="margin-top:8px">
-          <div style="font-size:10px;color:var(--muted);margin-bottom:6px">📸 אסמכתאות מסירה</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            ${s.delivery_proof_urls.map(url => `<img src="${url}" onclick="window.open('${url}','_blank')" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--green);cursor:pointer">`).join('')}
-          </div>
-          ${s.delivery_note ? `<div style="font-size:11px;color:var(--light);margin-top:6px;font-style:italic">"${s.delivery_note}"</div>` : ''}
+        <div style="display:flex;gap:4px;margin-top:6px">
+          ${s.delivery_proof_urls.slice(0,4).map(url=>`<img src="${url}" onclick="window.open('${url}','_blank')" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--green);cursor:pointer">`).join('')}
         </div>` : ''}
-      <!-- כפתורי עריכה ומחיקה -->
-      <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-        <button onclick="event.stopPropagation();editShipment('${s.id}')"
-          style="flex:1;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600">
-          ✏️ ערוך
-        </button>
-        <button onclick="event.stopPropagation();deleteShipment('${s.id}',this)"
-          style="flex:1;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:8px;padding:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600">
-          🗑️ מחק
-        </button>
-      </div>`;
-    div.onmouseenter = () => div.style.borderColor = 'rgba(245,166,35,.3)';
-    div.onmouseleave = () => div.style.borderColor = 'var(--border)';
+      <!-- primary action -->
+      <div style="margin-top:8px">${primaryAction}</div>
+      ${s.status === 'accepted' && s.confirmation_expires_at && new Date(s.confirmation_expires_at) < new Date() ? `
+        <div style="margin-top:6px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px;font-size:11px;color:#fca5a5;display:flex;align-items:center;justify-content:space-between">
+          <span>⏰ הנהג לא אישר בזמן</span>
+          <button onclick="reopenShipment('${s.id}')" style="background:#ef4444;border:none;color:#fff;border-radius:6px;padding:3px 10px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">בחר נהג אחר</button>
+        </div>` : ''}`;
+
+    div.onmouseenter = () => div.style.boxShadow = '0 4px 20px rgba(0,0,0,.3)';
+    div.onmouseleave = () => div.style.boxShadow = 'none';
     div.onclick = () => showBRoute(s);
     list.appendChild(div);
   });
+}
 }
 
 // ── עריכת הובלה ──────────────────────────────────────────────
