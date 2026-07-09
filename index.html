@@ -40,8 +40,8 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 #main { flex:1; display:flex; overflow:hidden; position:relative; }
 
 /* MAP - left 40% */
-#map-wrap { width:40%; min-width:300px; position:relative; flex-shrink:0; border-left:1px solid var(--border); }
-#map { width:100%; height:100%; }
+#map-wrap { width:40%; min-width:300px; position:relative; flex-shrink:0; border-left:1px solid var(--border); min-height:300px; }
+#map { width:100%; height:100%; min-height:300px; }
 .leaflet-container { background:#e8eef4 !important; }
 .leaflet-control-zoom a { background:#fff!important; color:#475569!important; border-color:#e2e8f0!important; box-shadow:var(--shadow-sm)!important; }
 .leaflet-control-zoom a:hover { background:#f8f9fc!important; color:var(--text)!important; }
@@ -1901,6 +1901,7 @@ function setMode(mode) {
     btnD.style.color        = '#fff';
     btnB.style.background   = 'transparent';
     btnB.style.color        = 'var(--muted)';
+    setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 100);
   } else {
     driverEl.style.display  = 'none';
     sidebarEl.style.display = 'none';
@@ -3705,4 +3706,4 @@ document.addEventListener('DOMContentLoaded', () => {
   if (topbar) {
     const userBtn = document.createElement('button');
     userBtn.onclick = showUserMenu;
-    userBtn.style.cssText = 'background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:12px;display:flex;al
+    userBtn.style.cssText = 'background:var(--card);border:1px solid var(--border);color:var
