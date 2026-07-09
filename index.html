@@ -3706,4 +3706,28 @@ document.addEventListener('DOMContentLoaded', () => {
   if (topbar) {
     const userBtn = document.createElement('button');
     userBtn.onclick = showUserMenu;
-    userBtn.style.cssText = 'background:var(--card);border:1px solid var(--border);color:var
+    userBtn.style.cssText = 'background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;font-size:12px;display:flex;align-items:center;gap:6px;max-width:200px';
+    userBtn.innerHTML = '👤 <span id="user-name-btn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">כניסה</span>';
+    topbar.appendChild(userBtn);
+    updateUserBtn();
+  }
+});
+
+// ── INIT ─────────────────────────────────────────────────────
+// תקן גודל מפה אחרי שה-DOM נטען
+window.addEventListener('load', () => {
+  setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 300);
+});
+window.addEventListener('resize', () => {
+  try { map.invalidateSize(); } catch(e){}
+  try { if(bMap) bMap.invalidateSize(); } catch(e){}
+});
+initAuth().then(() => {
+  subscribeRealtime();
+  loadShipmentsFromDB();
+  addNotificationBtn();
+  requestNotificationPermission();
+});
+</script>
+</body>
+</html>
