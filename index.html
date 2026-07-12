@@ -710,9 +710,9 @@ async function renderMyShipments() {
     } else if (s.status === 'accepted' && b.status === 'accepted') {
       myLabel = '📨 עסק בחר בך - לחץ לאשר!'; myColor = '#f59e0b';
     } else if (b.status === 'chosen' && !s.escrow_paid) {
-      myLabel = '🎉 עסק אישר! ממתין לתשלום'; myColor = 'var(--green)';
-    } else if (b.status === 'chosen' && s.escrow_paid && s.status === 'driver_confirmed') {
-      myLabel = '✅ מתואם - עדכן סטטוס איסוף'; myColor = 'var(--green)';
+      myLabel = '🎉 עסק בחר בך! ממתין לתשלום לנאמנות'; myColor = 'var(--green)';
+    } else if (b.status === 'chosen' && s.escrow_paid) {
+      myLabel = '✅ מתואם ומשולם - עדכן סטטוס'; myColor = 'var(--green)';
     } else {
       myLabel = getStatusLabel(s.status || 'accepted'); myColor = getStatusColor(s.status || 'accepted');
     }
@@ -771,7 +771,7 @@ async function renderMyShipments() {
               </div>`}
           ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);color:#16a34a;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
         </div>
-        ${renderTrackingBar(b.shipment_id, s.status || 'accepted', true, b.status, s.escrow_paid)}
+        ${renderTrackingBar(b.shipment_id, b.status === 'chosen' ? 'driver_confirmed' : (s.status || 'accepted'), true, b.status, s.escrow_paid)}
       </div>
     </div>`;
   }).join('');
@@ -1182,9 +1182,17 @@ function renderBList() {
         primaryAction = `<div style="text-align:center;padding:8px;font-size:12px;color:var(--muted)">⏳ ממתין להצעות מנהגים</div>`;
       }
     } else if (s.status === 'accepted') {
-      primaryAction = `<div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--accent);text-align:center">
-        📨 נשלחה בקשת אישור לנהג — ממתין לאישורו
-      </div>`;
+      if (s.confirmedBidsCount > 0) {
+        // יש נהגים שאישרו — העסק צריך לבחור אחד
+        primaryAction = `<button onclick="event.stopPropagation();showConfirmedDrivers('${s.id}')"
+          style="width:100%;background:var(--green);border:none;color:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
+          🤝 ${s.confirmedBidsCount} נהגים אישרו — בחר נהג סופי
+        </button>`;
+      } else {
+        primaryAction = `<div style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--accent);text-align:center">
+          📨 נשלחה בקשת אישור לנהג — ממתין לאישורו
+        </div>`;
+      }
     } else if (s.status === 'driver_confirmed' && !s.escrow_paid) {
       primaryAction = `<button onclick="event.stopPropagation();openEscrowPaymentModal('${s.id}',${s.finalPrice||s.price})"
         style="width:100%;background:var(--green);border:none;color:var(--black);border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
@@ -2601,7 +2609,10 @@ async function loadShipmentsFromDB() {
 
     if (!error && data?.length > 0) {
       data.forEach(s => {
-        const chosenBid = s.bids?.find(b => b.status === 'chosen') || s.bids?.find(b => b.status === 'accepted');
+        const chosenBid = s.bids?.find(b => b.status === 'chosen')
+          || s.bids?.find(b => b.status === 'driver_confirmed')
+          || s.bids?.find(b => b.status === 'accepted');
+        const confirmedBids = s.bids?.filter(b => b.status === 'driver_confirmed') || [];
         BUSINESS_SHIPMENTS.push({
           id:                  s.id,
           title:               s.title || `${s.from_city} → ${s.to_city}`,
@@ -2614,6 +2625,7 @@ async function loadShipmentsFromDB() {
           finalPrice:          chosenBid?.price ?? (s.base_price || 0),
           status:              s.status || 'open',
           bids:                s.bids?.length || 0,
+          confirmedBidsCount:  confirmedBids.length,
           date:                formatDate(s.pickup_date),
           type:                TYPES[0],
           description:         s.description || '',
@@ -2623,7 +2635,7 @@ async function loadShipmentsFromDB() {
           delivery_note:       s.delivery_note || '',
           acceptedDriverId:    chosenBid?.driver_id || null,
           acceptedDriverName:  chosenBid?.profiles?.full_name || 'הנהג',
-          _driverNameLocked:   true, // השם יחשף רק אחרי escrow_paid
+          _driverNameLocked:   true,
           confirmation_expires_at: s.confirmation_expires_at || null,
           escrow_paid:         s.escrow_paid || false,
           driver_paid:         s.driver_paid || false,
@@ -3652,7 +3664,7 @@ async function processReleasePayment(shipmentId, amount, commission, driverName,
 const _origRenderBList = renderBList;
 window.renderBList = function() {
   _origRenderBList();
-  // הוסף כפתורי פעולה לכרטיסים שהושלמו
+  // הוסף כפתורי תשלום/דירוג לכרטיסים (צ'אט כבר בתוך הכרטיס)
   BUSINESS_SHIPMENTS.forEach(s => {
     if (['accepted','driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status)) {
       const cards = document.querySelectorAll('#b-list > div');
@@ -3660,40 +3672,20 @@ window.renderBList = function() {
         if (card.textContent.includes(s.title || s.from) && !card.querySelector('.extra-actions')) {
           const actions = document.createElement('div');
           actions.className = 'extra-actions';
-          actions.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:8px';
-
-          // כפתור צ'אט - נעול אם עדיין לא שולם לנאמנות
-          const chatLocked = !s.escrow_paid;
-          const chatBtn = chatLocked
-            ? `<button onclick="showToast('🔒 הצ\\'אט ייפתח לאחר תשלום לנאמנות','#f59e0b')"
-                style="flex:1;background:#f8fafc;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600">
-                🔒 צ'אט (נעול)
-              </button>`
-            : `<button onclick="openChat('${s.id}','${getDriverName(s)}')" data-chat-shipment="${s.id}"
-                style="flex:1;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600">
-                💬 צ'אט עם הנהג
-              </button>`;
-
-          // כפתור תשלום - שלב 1 (escrow) רק כש-driver_confirmed וטרם שולם
-          const escrowBtn = (s.status === 'driver_confirmed' && !s.escrow_paid)
-            ? `<button onclick="openEscrowPaymentModal('${s.id}',${s.finalPrice})"
-                style="flex:1;background:linear-gradient(135deg,rgba(245,166,35,.25),rgba(245,166,35,.12));border:1px solid rgba(245,166,35,.5);color:var(--accent);border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">
-                🔒 שלם לנאמנות
-              </button>`
-            : '';
+          actions.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:4px';
 
           // כפתור שחרור תשלום - שלב 2, רק אחרי delivered ולפני driver_paid
           const releaseBtn = (s.status === 'delivered' && s.escrow_paid && !s.driver_paid)
             ? `<button onclick="openReleasePaymentModal('${s.id}',${s.finalPrice},'${(getDriverName(s)).replace(/'/g,"\\'")}')"
-                style="flex:1;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86efac;border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">
-                💸 העבר תשלום לנהג
+                style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;border-radius:8px;padding:9px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800">
+                💸 העבר תשלום לנהג ₪${Math.round((s.finalPrice||s.price)*0.90)}
               </button>`
             : '';
 
-          const ratingBtn = (s.status === 'delivered' && s.acceptedDriverId)
+          const ratingBtn = (s.status === 'delivered' && s.acceptedDriverId && s.driver_paid)
             ? `<button onclick="openRatingModal('${s.id}','${(getDriverName(s)).replace(/'/g,"\\'")}','${s.acceptedDriverId}')"
-                style="flex:1;background:linear-gradient(135deg,rgba(245,166,35,.2),rgba(245,166,35,.1));border:1px solid rgba(245,166,35,.5);color:var(--accent);border-radius:7px;padding:6px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700">
-                ⭐ דרג את ${getDriverName(s)}
+                style="width:100%;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.4);color:var(--accent);border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700">
+                ⭐ דרג את הנהג
               </button>`
             : '';
 
@@ -3701,9 +3693,12 @@ window.renderBList = function() {
             ? `<div style="text-align:center;font-size:11px;color:var(--green);font-weight:700;padding:4px">✅ התשלום הועבר לנהג</div>`
             : '';
 
+          const hasContent = releaseBtn || ratingBtn || paidLabel;
+          if (!hasContent) return; // אל תוסיף div ריק
+
           actions.innerHTML = `
-            <div style="display:flex;gap:6px">${chatBtn}${escrowBtn}</div>
-            ${releaseBtn || ratingBtn ? `<div style="display:flex;gap:6px">${releaseBtn}${ratingBtn}</div>` : ''}
+            ${releaseBtn}
+            ${ratingBtn}
             ${paidLabel}`;
           card.appendChild(actions);
         }
