@@ -228,21 +228,29 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
       </div>
     </div>
 
-    <!-- TABS: הכל / מסביבי / ההובלות שלי -->
-    <div style="display:flex;border-bottom:1.5px solid var(--border);flex-shrink:0;background:var(--card);pointer-events:all">
-      <button id="tab-all" onclick="switchTab('all')"
-        style="flex:1;padding:11px 4px;border:none;border-bottom:2.5px solid var(--accent);background:transparent;color:var(--accent);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
-        🗺️ כל ההובלות
-      </button>
+    <!-- SINGLE NAV ROW: מסביבי | הכל | צפון | מרכז | דרום | שלי -->
+    <div style="display:flex;align-items:center;border-bottom:1.5px solid var(--border);flex-shrink:0;background:var(--card);pointer-events:all;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:4px;padding:0 8px">
+      <!-- מסביבי — פותח near panel -->
       <button id="tab-near" onclick="switchTab('near')"
-        style="flex:1;padding:11px 4px;border:none;border-bottom:2.5px solid transparent;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">
+        style="flex-shrink:0;padding:12px 10px;border:none;border-bottom:2.5px solid transparent;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
         📍 מסביבי
       </button>
+      <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
+      <!-- פילטרים אזוריים -->
+      <button class="filter-btn active" onclick="setFilter('all',this)" style="flex-shrink:0;padding:6px 11px;border-radius:999px">הכל</button>
+      <button class="filter-btn" onclick="setFilter('north',this)" style="flex-shrink:0;padding:6px 11px;border-radius:999px">🌿 צפון</button>
+      <button class="filter-btn" onclick="setFilter('center',this)" style="flex-shrink:0;padding:6px 11px;border-radius:999px">🏙️ מרכז</button>
+      <button class="filter-btn" onclick="setFilter('south',this)" style="flex-shrink:0;padding:6px 11px;border-radius:999px">🏜️ דרום</button>
+      <div style="width:1px;height:20px;background:var(--border);flex-shrink:0"></div>
+      <!-- שלי -->
       <button id="tab-mine" onclick="switchTab('mine')"
-        style="flex:1;padding:10px 4px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;position:relative">
+        style="flex-shrink:0;padding:12px 10px;border:none;border-bottom:2.5px solid transparent;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;position:relative;white-space:nowrap">
         🚛 שלי
-        <span id="mine-tab-badge" style="display:none;position:absolute;top:6px;right:8px;background:#ef4444;color:#fff;border-radius:50%;min-width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;padding:0 2px"></span>
+        <span id="mine-tab-badge" style="display:none;position:absolute;top:6px;right:4px;background:#ef4444;color:#fff;border-radius:50%;min-width:16px;height:16px;font-size:9px;font-weight:800;align-items:center;justify-content:center;padding:0 2px"></span>
       </button>
+      <!-- hidden elements kept for JS compatibility -->
+      <button id="tab-all" style="display:none"></button>
+      <button class="filter-btn" id="my-shipments-btn" onclick="setFilter('mine',this)" style="display:none"></button>
     </div>
 
     <!-- NEAR ME PANEL (hidden by default) -->
@@ -252,7 +260,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
           <span id="radius-badge" style="font-size:10px;background:rgba(245,166,35,.15);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:700;display:none"></span>
         </div>
         <div style="display:flex;gap:6px">
-          <button id="locate-btn" onclick="locateMe()" style="background:var(--accent);border:none;color:var(--black);border-radius:7px;padding:7px 14px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px">
+          <button id="locate-btn" onclick="locateMe()" style="background:var(--accent);border:none;color:#fff;border-radius:7px;padding:7px 14px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;gap:4px">
             <span id="locate-icon">📡</span> <span id="locate-text">אתר אותי</span>
           </button>
           <button id="radius-clear" onclick="clearRadius()" style="display:none;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:7px 10px;cursor:pointer;font-family:inherit;font-size:11px">✕</button>
@@ -277,14 +285,8 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
       </div>
     </div>
 
-    <!-- REGION FILTER CHIPS -->
-    <div id="region-chips" style="padding:7px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card);pointer-events:all">
-      <button class="filter-btn active" onclick="setFilter('all',this)">הכל</button>
-      <button class="filter-btn" onclick="setFilter('north',this)">🌿 צפון</button>
-      <button class="filter-btn" onclick="setFilter('center',this)">🏙️ מרכז</button>
-      <button class="filter-btn" onclick="setFilter('south',this)">🏜️ דרום</button>
-      <button class="filter-btn" id="my-shipments-btn" onclick="setFilter('mine',this)" style="display:none"></button>
-    </div>
+    <!-- hidden region-chips div kept for JS compatibility -->
+    <div id="region-chips" style="display:none"></div>
 
     <div id="list-header" style="padding:6px 14px 4px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted);flex-shrink:0;background:var(--deep);pointer-events:all"><span id="list-count"></span><span style="color:var(--accent);font-weight:700">לפי מחיר ↓</span></div>
     <div id="list"></div>
@@ -632,37 +634,37 @@ function closeRoute() { selectShipment(selectedId); }
 
 // ── Filter ──
 function switchTab(tab) {
-  const tabs = ['all','near','mine'];
-  tabs.forEach(t => {
-    const btn = document.getElementById('tab-'+t);
-    if (btn) {
-      btn.style.borderBottomColor = t===tab ? 'var(--accent)' : 'transparent';
-      btn.style.color = t===tab ? 'var(--accent)' : 'var(--muted)';
-      btn.style.fontWeight = t===tab ? '700' : '600';
-    }
-  });
+  // עדכן active state על tab-near ו-tab-mine
+  const tabNear = document.getElementById('tab-near');
+  const tabMine = document.getElementById('tab-mine');
+  if (tabNear) {
+    tabNear.style.borderBottomColor = tab==='near' ? 'var(--accent)' : 'transparent';
+    tabNear.style.color = tab==='near' ? 'var(--accent)' : 'var(--muted)';
+  }
+  if (tabMine) {
+    tabMine.style.borderBottomColor = tab==='mine' ? 'var(--accent)' : 'transparent';
+    tabMine.style.color = tab==='mine' ? 'var(--accent)' : 'var(--muted)';
+  }
+
   const nearPanel = document.getElementById('near-panel');
-  const regionChips = document.getElementById('region-chips');
-  const listEl = document.getElementById('list');
-  const headerEl = document.getElementById('list-header');
-  const mineEl = document.getElementById('my-shipments-tab');
+  const listEl    = document.getElementById('list');
+  const headerEl  = document.getElementById('list-header');
+  const mineEl    = document.getElementById('my-shipments-tab');
 
   if (tab === 'near') {
     if (nearPanel) nearPanel.style.display = 'block';
-    if (regionChips) regionChips.style.display = 'none';
     if (listEl) listEl.style.display = '';
     if (headerEl) headerEl.style.display = '';
     if (mineEl) mineEl.style.display = 'none';
     setFilter('near', document.querySelector('.filter-btn') || { classList: { add:()=>{}, remove:()=>{} } });
   } else if (tab === 'mine') {
     if (nearPanel) nearPanel.style.display = 'none';
-    if (regionChips) regionChips.style.display = 'none';
     if (listEl) listEl.style.display = 'none';
     if (headerEl) headerEl.style.display = 'none';
     if (mineEl) {
       mineEl.style.display = 'flex';
       mineEl.style.flexDirection = 'column';
-      mineEl.style.overflowY = 'auto';
+      mineEl.style.overflowY = 'scroll';
       mineEl.style.webkitOverflowScrolling = 'touch';
       mineEl.style.flex = '1';
       mineEl.style.minHeight = '0';
@@ -670,7 +672,6 @@ function switchTab(tab) {
     renderMyShipments();
   } else {
     if (nearPanel) nearPanel.style.display = 'none';
-    if (regionChips) regionChips.style.display = 'flex';
     if (listEl) listEl.style.display = '';
     if (headerEl) headerEl.style.display = '';
     if (mineEl) mineEl.style.display = 'none';
