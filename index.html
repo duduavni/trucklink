@@ -726,6 +726,7 @@ async function renderMyShipments() {
 
     return `
     <div style="background:#fff;border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+      <!-- שורת כותרת - לחץ לפתיחה/סגירה -->
       <div onclick="toggleMyShipment('ms-${idx}')" style="padding:11px 12px;display:flex;align-items:center;gap:8px;cursor:pointer">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:13px;direction:ltr;text-align:right">${s.from_city||''} → ${s.to_city||''}</div>
@@ -737,6 +738,20 @@ async function renderMyShipments() {
           <span id="ms-arrow-${idx}" style="color:var(--muted);font-size:11px">▼</span>
         </div>
       </div>
+
+      ${/* כפתורי אישור/דחייה - מוצגים תמיד כשנהג צריך להחליט */ b.status === 'accepted' ? `
+      <div style="padding:0 12px 12px;display:flex;gap:8px">
+        <button onclick="updateDeliveryStatus('${b.shipment_id}','driver_confirmed',this)"
+          style="flex:2;background:#16a34a;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+          ✅ אני מאשר ומקבל
+        </button>
+        <button onclick="declineShipment('${b.shipment_id}',this)"
+          style="flex:1;background:#dc2626;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px">
+          ✕ לא יכול
+        </button>
+      </div>` : ''}
+
+      <!-- אזור מורחב - פרטים נוספים -->
       <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
           ${s.weight ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">⚖️ ${s.weight}ק"ג</span>` : ''}
@@ -748,13 +763,13 @@ async function renderMyShipments() {
         <div style="display:flex;gap:6px;margin-top:8px">
           ${s.escrow_paid
             ? `<button data-chat-shipment="${b.shipment_id}" onclick="openChatFromBanner(this)" data-shipment-id="${b.shipment_id}" data-business-name="${businessName.replace(/"/g,'&quot;')}"
-                style="flex:1;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:#93c5fd;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
+                style="flex:1;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.3);color:#2563eb;border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">
                 ${badgeHtml} 💬 צ'אט עם העסק
               </button>`
             : `<div style="flex:1;background:#f8fafc;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;font-size:11px;text-align:center">
                 🔒 צ'אט יפתח אחרי תשלום העסק לנאמנות
               </div>`}
-          ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
+          ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);color:#16a34a;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
         </div>
         ${renderTrackingBar(b.shipment_id, s.status || 'accepted', true, b.status, s.escrow_paid)}
       </div>
@@ -3138,26 +3153,13 @@ function renderTrackingBar(shipmentId, status, isDriver, bidStatus, escrowPaid) 
             <div style="font-size:10px;color:var(--muted);margin-top:3px">לאחר התשלום תוכל לעדכן סטטוס איסוף</div>
           </div>`;
       } else {
-        // כפתור אישור מיוחד - בולט יותר
-        nextBtn = `
-          <div style="margin-top:10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:10px">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-align:center">נבחרת לביצוע הובלה זו - האם אתה זמין?</div>
-            <div style="display:flex;gap:6px">
-              <button onclick="updateDeliveryStatus('${shipmentId}','driver_confirmed',this)"
-                style="flex:2;background:var(--green);border:none;color:var(--black);border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
-                🤝 אני מאשר ומקבל את ההובלה
-              </button>
-              <button onclick="declineShipment('${shipmentId}',this)"
-                style="flex:1;background:transparent;border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-size:11px">
-                ✕ לא יכול
-              </button>
-            </div>
-          </div>`;
+        // כפתורי אישור/דחייה מוצגים מחוץ לבלוק הזה (תמיד גלויים) - לא מציגים שוב כאן
+        nextBtn = '';
       }
     } else {
       nextBtn = `<button onclick="updateDeliveryStatus('${shipmentId}','${next.key}',this)"
-        style="width:100%;margin-top:10px;background:var(--accent);border:none;color:var(--black);border-radius:9px;padding:9px;cursor:pointer;font-family:inherit;font-weight:800;font-size:12px">
-        ${next.icon} עדכן: ${next.label}
+        style="width:100%;margin-top:10px;background:#16a34a;border:none;color:#fff;border-radius:9px;padding:11px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
+        ${next.icon} עדכן סטטוס: ${next.label}
       </button>`;
     }
   }
