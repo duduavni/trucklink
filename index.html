@@ -732,8 +732,8 @@ async function renderMyShipments() {
       ? `<span style="background:#ef4444;color:#fff;border-radius:50%;min-width:18px;height:18px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 3px">${unread > 9 ? '9+' : unread}</span>`
       : '';
     const imagesHtml = s.image_urls?.length
-      ? `<div style="display:flex;gap:4px;overflow-x:auto;margin-top:6px">
-          ${s.image_urls.map(url => `<img src="${url}" onclick="window.open('${url}','_blank')" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;cursor:pointer">`).join('')}
+      ? `<div style="display:flex;gap:6px;overflow-x:auto;margin:8px 0;padding-bottom:2px">
+          ${s.image_urls.map(url => `<img src="${url}" loading="lazy" onclick="window.open('${url}','_blank')" style="width:72px;height:72px;object-fit:cover;border-radius:10px;border:2px solid var(--border2);flex-shrink:0;cursor:pointer;background:var(--card2)">`).join('')}
         </div>` : '';
     let myLabel, myColor, myNextAction = '';
     if (b.status === 'driver_confirmed') {
@@ -802,7 +802,7 @@ async function renderMyShipments() {
         <div style="background:linear-gradient(135deg,rgba(22,163,74,.12),rgba(22,163,74,.06));border:1.5px solid rgba(22,163,74,.4);border-radius:14px;padding:18px;text-align:center;animation:celebrationBounce .6s ease both">
           <div style="font-size:48px;margin-bottom:8px">🎉</div>
           <div style="font-weight:800;font-size:16px;color:#16a34a">הובלה הושלמה ותשלום התקבל!</div>
-          <div style="font-size:14px;color:#64748b;margin-top:6px;font-family:monospace;font-weight:700">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
+          <div style="font-size:14px;color:var(--text2);margin-top:6px;font-family:monospace;font-weight:700">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
         </div>
       </div>` : `
       <div style="padding:0 14px 14px">
@@ -810,13 +810,13 @@ async function renderMyShipments() {
       </div>`}
 
       <!-- אזור מורחב - פרטים נוספים (לחץ לפתיחה) -->
-      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);background:#fff">
+      <div id="ms-${idx}" style="display:none;padding:0 14px 14px;border-top:1px solid var(--border);background:var(--card2)">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
-          ${s.weight ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">⚖️ ${s.weight}ק"ג</span>` : ''}
-          ${s.pickup_date ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
-          <span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">🏢 עסק מאומת ✓</span>
+          ${s.weight ? `<span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;padding:4px 9px;font-size:11px;color:var(--text2)">⚖️ ${s.weight}ק"ג</span>` : ''}
+          ${s.pickup_date ? `<span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;padding:4px 9px;font-size:11px;color:var(--text2)">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
+          <span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;padding:4px 9px;font-size:11px;color:var(--text2)">🏢 עסק מאומת ✓</span>
         </div>
-        ${s.description ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:#f8fafc;border-radius:7px">📝 ${s.description}</div>` : ''}
+        ${s.description ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px">📝 ${s.description}</div>` : ''}
         ${imagesHtml}
         <div style="display:flex;gap:8px;margin-top:10px">
           ${s.escrow_paid
@@ -1068,30 +1068,30 @@ function renderList() {
     const net    = Math.round(s.price * 0.90);
     const div    = document.createElement('div');
     div.className = 'ship-card' + (isSel ? ' selected' : '');
-    div.style.cssText = `border-color:${isSel ? color : hasBid ? '#16a34a' : 'var(--border)'};box-shadow:${isSel ? `0 0 0 2px ${color}33, 0 4px 16px ${color}22` : hasBid ? '0 0 0 1.5px rgba(22,163,74,.3)' : 'var(--shadow-sm)'};background:${hasBid ? '#f0fdf4' : '#fff'}`;
+    div.style.cssText = `border-color:${isSel ? color : hasBid ? 'var(--green)' : 'var(--border)'};box-shadow:${isSel ? `0 0 0 2px ${color}44, 0 4px 16px ${color}22` : hasBid ? '0 0 0 1.5px rgba(0,200,83,.35)' : 'var(--shadow-sm)'};background:${hasBid ? 'rgba(0,200,83,.07)' : 'var(--card)'}`;
     div.innerHTML = `
-      <div class="neon-bar" style="background:${color};box-shadow:0 0 8px ${color}88"></div>
+      <div class="neon-bar" style="background:${color};box-shadow:0 0 10px ${color}99"></div>
       ${s.urgent && !hasBid ? '<div class="urgent-badge">🔥 דחוף</div>' : ''}
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right">${CITIES[s.fromId].name} → ${CITIES[s.toId].name}</div>
-          <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap">
-            <span style="background:${color}18;color:${color};border-radius:5px;padding:2px 6px;font-size:10px;font-weight:700">${s.type.icon} ${s.type.label}</span>
-            <span style="background:#f1f5f9;border-radius:5px;padding:2px 6px;font-size:10px;color:#64748b">⚖️ ${s.weight}ק"ג</span>
-            <span style="background:#f1f5f9;border-radius:5px;padding:2px 6px;font-size:10px;color:#64748b">📏 ${dist}ק"מ</span>
-            <span style="background:#f1f5f9;border-radius:5px;padding:2px 6px;font-size:10px;color:#64748b">📅 ${s.date}</span>
+          <div style="font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right;color:var(--text)">${CITIES[s.fromId].name} → ${CITIES[s.toId].name}</div>
+          <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
+            <span style="background:${color}22;color:${color};border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;border:1px solid ${color}44">${s.type.icon} ${s.type.label}</span>
+            <span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text2)">⚖️ ${s.weight}ק"ג</span>
+            <span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text2)">📏 ${dist}ק"מ</span>
+            <span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text2)">📅 ${s.date}</span>
           </div>
         </div>
         <div style="text-align:left;margin-right:10px;flex-shrink:0">
-          <div style="font-family:monospace;font-weight:900;font-size:18px;color:${color};text-shadow:0 0 12px ${color}66">₪${s.price}</div>
-          <div style="font-size:11px;color:#16a34a;font-weight:600">נטו ₪${net}</div>
+          <div style="font-family:monospace;font-weight:900;font-size:20px;color:${color};text-shadow:0 0 14px ${color}77">₪${s.price}</div>
+          <div style="font-size:11px;color:var(--green2);font-weight:700">נטו ₪${net}</div>
         </div>
       </div>
-      ${s.description ? `<div style="font-size:11px;color:#64748b;margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;background:#f8fafc;border-radius:6px">"${s.description}"</div>` : ''}
+      ${s.description ? `<div style="font-size:12px;color:var(--text2);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 9px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px">"${s.description}"</div>` : ''}
       ${hasBid
-        ? `<div style="background:rgba(22,163,74,.1);color:#16a34a;border:1px solid rgba(22,163,74,.3);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;text-align:center">✓ הצעה הוגשה — ממתין לתגובת העסק</div>`
+        ? `<div style="background:rgba(0,200,83,.1);color:var(--green2);border:1.5px solid rgba(0,200,83,.3);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;text-align:center">✓ הצעה הוגשה — ממתין לתגובת העסק</div>`
         : `<button onclick="event.stopPropagation();openBid(SHIPMENTS.find(x=>x.id==='${s.id}'))"
-            style="width:100%;background:${color};border:none;color:#fff;border-radius:8px;padding:9px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;box-shadow:0 2px 12px ${color}55">
+            style="width:100%;background:${color};border:none;color:#fff;border-radius:10px;padding:11px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:800;box-shadow:0 3px 14px ${color}55;letter-spacing:.3px">
             🚛 הגש הצעה ₪${s.price}
           </button>`
       }`;
