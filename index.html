@@ -3,6 +3,9 @@
 <head>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚛</text></svg>">
 <meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TruckLink – לוח נהגים</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -945,33 +948,45 @@ function showToast(msg,color='var(--green)'){
 function playPaymentSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // צליל מטבעות קזינו — סדרה של "טינג" עולה ויורדת
-    const coinHits = [
-      { freq: 1200, delay: 0.00, vol: 0.3 },
-      { freq: 1400, delay: 0.08, vol: 0.35 },
-      { freq: 1600, delay: 0.16, vol: 0.4 },
-      { freq: 1800, delay: 0.24, vol: 0.4 },
-      { freq: 2000, delay: 0.32, vol: 0.35 },
-      { freq: 1800, delay: 0.40, vol: 0.3 },
-      { freq: 1600, delay: 0.48, vol: 0.25 },
-      { freq: 2200, delay: 0.56, vol: 0.4 },
-      { freq: 2400, delay: 0.64, vol: 0.35 },
-      { freq: 2000, delay: 0.72, vol: 0.2 },
-    ];
-    coinHits.forEach(({ freq, delay, vol }) => {
+
+    function playCoin(delay) {
+      // רעש לבן קצר (מרקם המתכת של מטבע)
+      const bufSize = ctx.sampleRate * 0.05;
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = ctx.createBufferSource();
+      noise.buffer = buf;
+      const noiseGain = ctx.createGain();
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.value = 4000;
+      noiseFilter.Q.value = 0.5;
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noiseGain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.05);
+      noise.start(ctx.currentTime + delay);
+      noise.stop(ctx.currentTime + delay + 0.06);
+
+      // צליל מתכתי (התהודה של המטבע)
       const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = freq;
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      const start = ctx.currentTime + delay;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(vol, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
-      osc.start(start);
-      osc.stop(start + 0.2);
-    });
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2500, ctx.currentTime + delay);
+      osc.frequency.exponentialRampToValueAtTime(1800, ctx.currentTime + delay + 0.15);
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      oscGain.gain.setValueAtTime(0.2, ctx.currentTime + delay);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.22);
+    }
+
+    // 8 מטבעות ברצף מהיר
+    [0, 0.09, 0.18, 0.27, 0.36, 0.48, 0.58, 0.70].forEach(d => playCoin(d));
+
   } catch (e) { /* דפדפן לא תומך */ }
 }
 // ── Render Markers ──
