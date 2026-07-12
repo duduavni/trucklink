@@ -125,17 +125,120 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 #tab-all, #tab-near, #tab-mine { transition:all .18s; }
 
 @media (max-width:768px) {
+  /* ── Layout ── */
   #main { flex-direction:column !important; }
-  #map-wrap { width:100% !important; height:45vh !important; min-width:unset !important; border-left:none !important; flex-shrink:0 !important; }
-  #sidebar { width:100% !important; height:55vh !important; position:relative !important; bottom:auto !important; top:auto !important; right:auto !important; left:auto !important; border-radius:16px 16px 0 0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; box-shadow:0 -4px 20px rgba(0,0,0,.12) !important; pointer-events:all !important; }
-  #list { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; overscroll-behavior:contain !important; }
-  #my-shipments-tab { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; pointer-events:all !important; overscroll-behavior:contain !important; }
-  #route-info { right:8px !important; left:auto !important; top:8px !important; min-width:unset !important; max-width:calc(50vw) !important; }
+  #map-wrap {
+    width:100% !important;
+    height:38vh !important;
+    min-width:unset !important;
+    border-left:none !important;
+    flex-shrink:0 !important;
+    touch-action:pan-x pan-y !important;
+  }
+  #sidebar {
+    width:100% !important;
+    flex:1 !important;
+    height:auto !important;
+    position:relative !important;
+    inset:auto !important;
+    border-radius:20px 20px 0 0 !important;
+    overflow:hidden !important;
+    display:flex !important;
+    flex-direction:column !important;
+    box-shadow:0 -6px 24px rgba(0,0,0,.14) !important;
+    pointer-events:all !important;
+    background:#fff !important;
+  }
+
+  /* ── Earnings bar ── */
+  #earnings {
+    padding:10px 16px !important;
+    flex-shrink:0 !important;
+  }
+  .earn-item .val  { font-size:16px !important; }
+  .earn-item .val2 { font-size:18px !important; }
+  .earn-item .val3 { font-size:14px !important; }
+  .earn-item .label { font-size:9px !important; }
+
+  /* ── Tabs ── */
+  #tab-all, #tab-near, #tab-mine {
+    font-size:13px !important;
+    padding:12px 4px !important;
+    font-weight:700 !important;
+  }
+
+  /* ── Scrollable lists ── */
+  #list {
+    flex:1 !important;
+    overflow-y:scroll !important;
+    -webkit-overflow-scrolling:touch !important;
+    min-height:0 !important;
+    overscroll-behavior:contain !important;
+    padding:10px 10px 100px !important;
+    gap:10px !important;
+  }
+  #my-shipments-tab {
+    flex:1 !important;
+    overflow-y:scroll !important;
+    -webkit-overflow-scrolling:touch !important;
+    min-height:0 !important;
+    pointer-events:all !important;
+    overscroll-behavior:contain !important;
+    padding:10px 10px 100px !important;
+    background:#f8fafc !important;
+  }
+
+  /* ── Ship cards bigger touch targets ── */
+  .ship-card { padding:14px 16px !important; margin-bottom:0 !important; border-radius:14px !important; }
+  .ship-card .neon-bar { width:5px !important; }
+
+  /* ── Route info ── */
+  #route-info {
+    right:8px !important;
+    left:auto !important;
+    top:8px !important;
+    min-width:unset !important;
+    max-width:min(280px, calc(100vw - 70px)) !important;
+    padding:10px 12px !important;
+  }
   .leaflet-top.leaflet-left { top:8px !important; left:8px !important; }
   #hint { display:none !important; }
-  .earn-item .val { font-size:14px !important; }
-  /* מנע מהמפה לקבל scroll events שמיועדים לרשימה */
-  #map-wrap { touch-action:pan-x pan-y !important; }
+
+  /* ── Driver MY cards on mobile ── */
+  .driver-my-card {
+    border-radius:16px !important;
+    margin-bottom:10px !important;
+    box-shadow:0 2px 12px rgba(0,0,0,.08) !important;
+  }
+  .driver-my-card .card-header {
+    padding:14px 16px !important;
+    min-height:60px !important;
+  }
+  .driver-my-card .card-route-text {
+    font-size:15px !important;
+    font-weight:800 !important;
+  }
+  .driver-my-card .card-status-text {
+    font-size:12px !important;
+    margin-top:4px !important;
+  }
+  .driver-my-card .card-price-text {
+    font-size:17px !important;
+  }
+
+  /* ── Tracking bar big buttons ── */
+  .track-action-btn {
+    padding:15px !important;
+    font-size:16px !important;
+    border-radius:12px !important;
+    min-height:52px !important;
+  }
+  .track-decline-btn {
+    padding:15px !important;
+    font-size:14px !important;
+    border-radius:12px !important;
+    min-height:52px !important;
+  }
 }
 </style>
 </head>
@@ -747,10 +850,21 @@ async function renderMyShipments() {
       : 'rgba(34,197,94,.25)';
 
     return `
-    <div style="background:#fff;border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);position:relative">
-      <!-- פס ניאון שמאלי לפי סטטוס -->
-      <div style="position:absolute;top:0;right:0;width:4px;height:100%;background:${cardBorderColor};border-radius:0 12px 12px 0"></div>
+    <div class="driver-my-card" style="background:#fff;border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,.07);position:relative">
+      <!-- פס ניאון ימני לפי סטטוס -->
+      <div style="position:absolute;top:0;right:0;width:5px;height:100%;background:${cardBorderColor};border-radius:0 12px 12px 0;box-shadow:0 0 8px ${cardBorderColor}88"></div>
       <!-- שורת כותרת - לחץ לפתיחה/סגירה -->
+      <div class="card-header" onclick="toggleMyShipment('ms-${idx}')" style="padding:12px 16px 12px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,.05)">
+        <div style="flex:1;min-width:0">
+          <div class="card-route-text" style="font-weight:800;font-size:14px;direction:ltr;text-align:right;letter-spacing:.2px">${s.from_city||''} → ${s.to_city||''}</div>
+          <div class="card-status-text" style="font-size:11px;color:${myColor};margin-top:3px;font-weight:700">${myLabel}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${badgeHtml}
+          <div class="card-price-text" style="font-family:monospace;font-weight:900;font-size:15px;color:var(--accent)">₪${b.price}</div>
+          <span id="ms-arrow-${idx}" style="color:#94a3b8;font-size:16px;transition:transform .2s">▼</span>
+        </div>
+      </div>
       <div onclick="toggleMyShipment('ms-${idx}')" style="padding:11px 12px;display:flex;align-items:center;gap:8px;cursor:pointer">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:13px;direction:ltr;text-align:right">${s.from_city||''} → ${s.to_city||''}</div>
@@ -764,27 +878,26 @@ async function renderMyShipments() {
       </div>
 
       ${/* כפתורי אישור/דחייה - מוצגים תמיד כשנהג צריך להחליט */ b.status === 'accepted' ? `
-      <div style="padding:0 12px 12px;display:flex;gap:8px">
-        <button onclick="updateDeliveryStatus('${b.shipment_id}','driver_confirmed',this)"
-          style="flex:2;background:#16a34a;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+      <div style="padding:0 14px 14px;display:flex;gap:10px">
+        <button class="track-action-btn" onclick="updateDeliveryStatus('${b.shipment_id}','driver_confirmed',this)"
+          style="flex:2;background:#16a34a;border:none;color:#fff;border-radius:12px;padding:15px;cursor:pointer;font-family:inherit;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(22,163,74,.35);-webkit-tap-highlight-color:transparent">
           ✅ אני מאשר ומקבל
         </button>
-        <button onclick="declineShipment('${b.shipment_id}',this)"
-          style="flex:1;background:#dc2626;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px">
+        <button class="track-decline-btn" onclick="declineShipment('${b.shipment_id}',this)"
+          style="flex:1;background:#dc2626;border:none;color:#fff;border-radius:12px;padding:15px;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;-webkit-tap-highlight-color:transparent">
           ✕ לא יכול
         </button>
       </div>` : ''}
 
-      <!-- Tracking bar וסטיקר — תמיד גלויים, מחוץ לאזור המכווץ -->
       ${s.driver_paid ? `
-      <div style="padding:0 12px 12px">
-        <div style="background:linear-gradient(135deg,rgba(22,163,74,.12),rgba(22,163,74,.06));border:1.5px solid rgba(22,163,74,.4);border-radius:12px;padding:16px;text-align:center;animation:celebrationBounce .6s ease both">
-          <div style="font-size:44px;margin-bottom:6px">🎉</div>
-          <div style="font-weight:800;font-size:15px;color:#16a34a">הובלה הושלמה ותשלום התקבל!</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:4px;font-family:monospace;font-weight:700">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
+      <div style="padding:0 14px 14px">
+        <div style="background:linear-gradient(135deg,rgba(22,163,74,.12),rgba(22,163,74,.06));border:1.5px solid rgba(22,163,74,.4);border-radius:14px;padding:18px;text-align:center;animation:celebrationBounce .6s ease both">
+          <div style="font-size:48px;margin-bottom:8px">🎉</div>
+          <div style="font-weight:800;font-size:16px;color:#16a34a">הובלה הושלמה ותשלום התקבל!</div>
+          <div style="font-size:14px;color:#64748b;margin-top:6px;font-family:monospace;font-weight:700">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
         </div>
       </div>` : `
-      <div style="padding:0 12px 12px">
+      <div style="padding:0 14px 14px">
         ${renderTrackingBar(b.shipment_id, (b.status === 'chosen' && (s.status === 'accepted' || !s.status)) ? 'driver_confirmed' : (s.status || 'accepted'), true, b.status, s.escrow_paid)}
       </div>`}
 
@@ -3220,16 +3333,17 @@ function renderTrackingBar(shipmentId, status, isDriver, bidStatus, escrowPaid) 
   const steps = DELIVERY_STEPS.map((step, i) => {
     const done    = i < currentIdx;
     const active  = i === currentIdx;
-    const color   = done ? 'var(--green)' : active ? 'var(--accent)' : 'var(--border)';
-    const textCol = done || active ? 'var(--text)' : 'var(--muted)';
+    const color   = done ? '#16a34a' : active ? '#f5a623' : '#e2e8f0';
+    const bg      = done ? '#16a34a' : active ? '#f5a623' : '#fff';
+    const textCol = active ? '#f5a623' : done ? '#16a34a' : '#94a3b8';
     return `
-      <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:3px">
-        <div style="width:28px;height:28px;border-radius:50%;background:${done?'var(--green)':active?'var(--accent)':'#fff'};border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .3s;color:${done||active?'#fff':'var(--muted)'}">
+      <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">
+        <div style="width:34px;height:34px;border-radius:50%;background:${bg};border:2.5px solid ${color};display:flex;align-items:center;justify-content:center;font-size:${done?'14px':'13px'};transition:all .3s;color:${done||active?'#fff':'#94a3b8'};box-shadow:${active?'0 0 10px '+color+'55':'none'}">
           ${done ? '✓' : step.icon}
         </div>
-        <div style="font-size:9px;color:${textCol};text-align:center;font-weight:${active?'700':'400'}">${step.label}</div>
+        <div style="font-size:10px;color:${textCol};text-align:center;font-weight:${active?'800':'500'};line-height:1.2">${step.label}</div>
       </div>
-      ${i < DELIVERY_STEPS.length - 1 ? `<div style="flex:1;height:2px;background:${done?'var(--green)':'var(--border)'};margin-top:14px;transition:all .3s"></div>` : ''}`;
+      ${i < DELIVERY_STEPS.length - 1 ? `<div style="flex:1;height:3px;background:${done?'#16a34a':'#e2e8f0'};margin-top:17px;border-radius:2px;transition:all .3s"></div>` : ''}`;
   }).join('');
 
   // כפתור עדכון סטטוס - רק לנהג, ורק אם לא הושלם
@@ -3258,16 +3372,16 @@ function renderTrackingBar(shipmentId, status, isDriver, bidStatus, escrowPaid) 
         nextBtn = '';
       }
     } else {
-      nextBtn = `<button onclick="updateDeliveryStatus('${shipmentId}','${next.key}',this)"
-        style="width:100%;margin-top:10px;background:#16a34a;border:none;color:#fff;border-radius:9px;padding:11px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
+      nextBtn = `<button class="track-action-btn" onclick="updateDeliveryStatus('${shipmentId}','${next.key}',this)"
+        style="width:100%;margin-top:12px;background:#16a34a;border:none;color:#fff;border-radius:12px;padding:15px;cursor:pointer;font-family:inherit;font-weight:800;font-size:15px;box-shadow:0 4px 14px rgba(22,163,74,.3);-webkit-tap-highlight-color:transparent;letter-spacing:.3px">
         ${next.icon} עדכן סטטוס: ${next.label}
       </button>`;
     }
   }
 
   return `
-    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:8px">
-      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">מעקב הובלה</div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px 12px;margin-top:6px">
+      <div style="font-size:10px;color:#94a3b8;margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;text-align:center">מעקב הובלה</div>
       <div style="display:flex;align-items:center">${steps}</div>
       ${nextBtn}
     </div>`;
