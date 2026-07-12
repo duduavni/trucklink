@@ -446,6 +446,18 @@ const TYPES = [
 const SHIPMENTS = [];
 // נטען מסופהבייס אחרי התחברות
 
+// ── DELIVERY_STEPS - מוגדר כאן כדי לוודא זמינות לכל הפונקציות ──
+const DELIVERY_STEPS = [
+  { key: 'accepted',         label: 'נהג נבחר',    icon: '✅' },
+  { key: 'driver_confirmed', label: 'נהג אישר',    icon: '🤝' },
+  { key: 'pickup',           label: 'באיסוף',      icon: '📦' },
+  { key: 'on_the_way',       label: 'בדרך',        icon: '🚛' },
+  { key: 'delivered',        label: 'סופק',        icon: '🎉' },
+];
+function getDeliveryStepIndex(status) {
+  return DELIVERY_STEPS.findIndex(s => s.key === status);
+}
+
 // ── State ──
 let currentFilter = 'all';
 let selectedId    = null;
@@ -716,6 +728,8 @@ async function renderMyShipments() {
       myLabel = '🎉 עסק בחר בך! ממתין לתשלום לנאמנות'; myColor = 'var(--green)';
     } else if (b.status === 'chosen' && s.escrow_paid) {
       myLabel = '✅ מתואם ומשולם - עדכן סטטוס'; myColor = 'var(--green)';
+    } else if (s.status === 'done' || (s.status === 'delivered' && s.driver_paid)) {
+      myLabel = '🏁 הובלה הושלמה בהצלחה!'; myColor = 'var(--green)';
     } else {
       myLabel = getStatusLabel(s.status || 'accepted'); myColor = getStatusColor(s.status || 'accepted');
     }
@@ -774,6 +788,12 @@ async function renderMyShipments() {
               </div>`}
           ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);color:#16a34a;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
         </div>
+        ${(s.status === 'done' || (s.driver_paid)) ? `
+        <div style="background:linear-gradient(135deg,rgba(22,163,74,.1),rgba(22,163,74,.05));border:1.5px solid rgba(22,163,74,.3);border-radius:12px;padding:14px;margin-top:8px;text-align:center">
+          <div style="font-size:40px;margin-bottom:6px">🎉</div>
+          <div style="font-weight:800;font-size:15px;color:#16a34a">הובלה בוצעה בהצלחה!</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
+        </div>` : ''}
         ${renderTrackingBar(b.shipment_id, (b.status === 'chosen' && (s.status === 'accepted' || !s.status)) ? 'driver_confirmed' : (s.status || 'accepted'), true, b.status, s.escrow_paid)}
       </div>
     </div>`;
@@ -3124,17 +3144,7 @@ function closeChat() {
 }
 
 // ── מעקב סטטוס הובלה ─────────────────────────────────────────
-const DELIVERY_STEPS = [
-  { key: 'accepted',         label: 'נהג נבחר',    icon: '✅' },
-  { key: 'driver_confirmed', label: 'נהג אישר',    icon: '🤝' },
-  { key: 'pickup',           label: 'באיסוף',      icon: '📦' },
-  { key: 'on_the_way',       label: 'בדרך',        icon: '🚛' },
-  { key: 'delivered',        label: 'סופק',        icon: '🎉' },
-];
-
-function getDeliveryStepIndex(status) {
-  return DELIVERY_STEPS.findIndex(s => s.key === status);
-}
+// DELIVERY_STEPS ו-getDeliveryStepIndex מוגדרים למעלה בקובץ
 
 function renderTrackingBar(shipmentId, status, isDriver, bidStatus, escrowPaid) {
   const currentIdx = getDeliveryStepIndex(status);
@@ -3678,14 +3688,7 @@ window.renderBList = function() {
           actions.className = 'extra-actions';
           actions.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:4px';
 
-          // כפתור שחרור תשלום - שלב 2, רק אחרי delivered ולפני driver_paid
-          const releaseBtn = (s.status === 'delivered' && s.escrow_paid && !s.driver_paid)
-            ? `<button onclick="openReleasePaymentModal('${s.id}',${s.finalPrice},'${(getDriverName(s)).replace(/'/g,"\\'")}')"
-                style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;border-radius:8px;padding:9px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800">
-                💸 העבר תשלום לנהג ₪${Math.round((s.finalPrice||s.price)*0.90)}
-              </button>`
-            : '';
-
+          // כפתור דירוג — רק אחרי שהתשלום הועבר
           const ratingBtn = (s.status === 'delivered' && s.acceptedDriverId && s.driver_paid)
             ? `<button onclick="openRatingModal('${s.id}','${(getDriverName(s)).replace(/'/g,"\\'")}','${s.acceptedDriverId}')"
                 style="width:100%;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.4);color:var(--accent);border-radius:8px;padding:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700">
@@ -3694,14 +3697,17 @@ window.renderBList = function() {
             : '';
 
           const paidLabel = s.driver_paid
-            ? `<div style="text-align:center;font-size:11px;color:var(--green);font-weight:700;padding:4px">✅ התשלום הועבר לנהג</div>`
+            ? `<div style="background:linear-gradient(135deg,rgba(22,163,74,.1),rgba(22,163,74,.05));border:1.5px solid rgba(22,163,74,.3);border-radius:10px;padding:12px;text-align:center;margin-top:4px">
+                <div style="font-size:28px;margin-bottom:4px">🎉</div>
+                <div style="font-weight:800;font-size:13px;color:#16a34a">הובלה הושלמה בהצלחה!</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:2px">התשלום הועבר לנהג</div>
+              </div>`
             : '';
 
-          const hasContent = releaseBtn || ratingBtn || paidLabel;
+          const hasContent = ratingBtn || paidLabel;
           if (!hasContent) return; // אל תוסיף div ריק
 
           actions.innerHTML = `
-            ${releaseBtn}
             ${ratingBtn}
             ${paidLabel}`;
           card.appendChild(actions);
