@@ -57,8 +57,8 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 .tl-popup .leaflet-popup-tip-container { display:none!important; }
 
 /* MAP OVERLAYS */
-#route-info { position:absolute; top:12px; right:8px; left:auto; z-index:500; background:#fff; border:1px solid var(--border); border-radius:16px; padding:14px 16px; min-width:200px; max-width:260px; display:none; animation:fadeUp .2s ease both; box-shadow:var(--shadow-lg); }
-#hint { position:absolute; bottom:16px; left:12px; z-index:500; background:#fff; border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:11px; color:var(--muted); box-shadow:var(--shadow-sm); }
+#route-info { position:absolute; top:12px; right:8px; left:auto; z-index:500; background:var(--card); border:1px solid var(--border2); border-radius:16px; padding:14px 16px; min-width:200px; max-width:260px; display:none; animation:fadeUp .2s ease both; box-shadow:var(--shadow-lg); }
+#hint { position:absolute; bottom:16px; left:12px; z-index:500; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:11px; color:var(--text2); box-shadow:var(--shadow-sm); }
 #accepted-banner { position:absolute; bottom:80px; left:50%; transform:translateX(-50%); z-index:700; display:flex; flex-direction:column; gap:8px; width:min(380px,calc(100% - 32px)); }
 
 /* SIDEBAR - right 60% */
@@ -101,7 +101,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 @keyframes celebrationBounce { 0%{transform:scale(0.8);opacity:0} 60%{transform:scale(1.1)} 80%{transform:scale(0.96)} 100%{transform:scale(1);opacity:1} }
 
-.r-chip { flex:1; padding:5px 0; border-radius:6px; border:1.5px solid var(--border); background:#fff; color:var(--muted); font-family:inherit; font-size:11px; font-weight:600; cursor:pointer; transition:all .18s; }
+.r-chip { flex:1; padding:5px 0; border-radius:6px; border:1.5px solid var(--border); background:transparent; color:var(--text2); font-family:inherit; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; }
 .r-chip:hover { border-color:var(--accent); color:var(--accent); }
 .active-chip { border-color:var(--accent) !important; background:rgba(245,166,35,.1) !important; color:var(--accent) !important; }
 
@@ -207,7 +207,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   <div id="sidebar">
 
     <!-- EARNINGS BAR -->
-    <div id="earnings" style="padding:10px 14px;border-bottom:1px solid var(--border);background:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;pointer-events:all">
+    <div id="earnings" style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--card);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;pointer-events:all">
       <div class="earn-item" style="cursor:pointer" onclick="switchTab('all')">
         <div class="label">הכנסה השבוע</div>
         <div class="val" id="weekly-income">₪0</div>
@@ -229,7 +229,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
     </div>
 
     <!-- TABS: הכל / מסביבי / ההובלות שלי -->
-    <div style="display:flex;border-bottom:1.5px solid var(--border);flex-shrink:0;background:#fff;pointer-events:all">
+    <div style="display:flex;border-bottom:1.5px solid var(--border);flex-shrink:0;background:var(--card);pointer-events:all">
       <button id="tab-all" onclick="switchTab('all')"
         style="flex:1;padding:11px 4px;border:none;border-bottom:2.5px solid var(--accent);background:transparent;color:var(--accent);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
         🗺️ כל ההובלות
@@ -246,7 +246,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
     </div>
 
     <!-- NEAR ME PANEL (hidden by default) -->
-    <div id="near-panel" style="display:none;padding:10px 12px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;pointer-events:all">
+    <div id="near-panel" style="display:none;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;pointer-events:all">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:6px">
           <span id="radius-badge" style="font-size:10px;background:rgba(245,166,35,.15);color:var(--accent);border-radius:999px;padding:2px 8px;font-weight:700;display:none"></span>
@@ -278,16 +278,15 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
     </div>
 
     <!-- REGION FILTER CHIPS -->
-    <div id="region-chips" style="padding:8px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0;background:#fff;pointer-events:all">
+    <div id="region-chips" style="padding:7px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--card);pointer-events:all">
       <button class="filter-btn active" onclick="setFilter('all',this)">הכל</button>
       <button class="filter-btn" onclick="setFilter('north',this)">🌿 צפון</button>
       <button class="filter-btn" onclick="setFilter('center',this)">🏙️ מרכז</button>
       <button class="filter-btn" onclick="setFilter('south',this)">🏜️ דרום</button>
-      <button class="filter-btn" onclick="setFilter('urgent',this)">🔥 דחוף</button>
       <button class="filter-btn" id="my-shipments-btn" onclick="setFilter('mine',this)" style="display:none"></button>
     </div>
 
-    <div id="list-header"><span id="list-count"></span><span style="color:var(--accent)">לפי מחיר ↓</span></div>
+    <div id="list-header" style="padding:6px 14px 4px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted);flex-shrink:0;background:var(--deep);pointer-events:all"><span id="list-count"></span><span style="color:var(--accent);font-weight:700">לפי מחיר ↓</span></div>
     <div id="list"></div>
     <div id="my-shipments-tab" style="display:none;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 10px 80px;box-sizing:border-box;flex:1;min-height:0;pointer-events:all;overscroll-behavior:contain"></div>
   </div>
@@ -511,7 +510,7 @@ function makeIcon(s, active) {
 // ── Popup HTML ──
 function makePopup(s) {
   const from=CITIES[s.fromId], to=CITIES[s.toId], dist=getDist(s.fromId,s.toId), c=s.type.color;
-  return `<div dir="rtl" style="background:#fff;border:1.5px solid ${c};border-radius:12px;overflow:hidden;font-family:'Segoe UI',sans-serif;min-width:165px;box-shadow:0 6px 24px rgba(0,0,0,.15)">
+  return `<div dir="rtl" style="background:var(--card);border:1.5px solid ${c};border-radius:12px;overflow:hidden;font-family:'Segoe UI',sans-serif;min-width:165px;box-shadow:0 6px 24px rgba(0,0,0,.8)">
     <div style="background:${c}18;padding:7px 11px;border-bottom:1px solid ${c}22">
       <span style="color:${c};font-size:11px;font-weight:800">${s.type.icon} ${s.type.label}${s.urgent?' 🔥':''}</span>
     </div>
@@ -758,7 +757,7 @@ async function renderMyShipments() {
       : 'rgba(34,197,94,.25)';
 
     return `
-    <div class="driver-my-card" style="background:#fff;border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,.07);position:relative">
+    <div class="driver-my-card" style="background:var(--card);border:1.5px solid ${cardBorderColor};border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:var(--shadow-sm);position:relative">
       <!-- פס ניאון ימני לפי סטטוס -->
       <div style="position:absolute;top:0;right:0;width:5px;height:100%;background:${cardBorderColor};border-radius:0 12px 12px 0;box-shadow:0 0 8px ${cardBorderColor}88"></div>
       <!-- שורת כותרת - לחץ לפתיחה/סגירה -->
@@ -1071,7 +1070,7 @@ function renderList() {
     div.style.cssText = `border-color:${isSel ? color : hasBid ? 'var(--green)' : 'var(--border)'};box-shadow:${isSel ? `0 0 0 2px ${color}44, 0 4px 16px ${color}22` : hasBid ? '0 0 0 1.5px rgba(0,200,83,.35)' : 'var(--shadow-sm)'};background:${hasBid ? 'rgba(0,200,83,.07)' : 'var(--card)'}`;
     div.innerHTML = `
       <div class="neon-bar" style="background:${color};box-shadow:0 0 10px ${color}99"></div>
-      ${s.urgent && !hasBid ? '<div class="urgent-badge">🔥 דחוף</div>' : ''}
+      
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right;color:var(--text)">${CITIES[s.fromId].name} → ${CITIES[s.toId].name}</div>
@@ -1493,7 +1492,7 @@ function deleteShipment(id, btn) {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px';
     overlay.innerHTML = `
-      <div style="background:#fff;border:2px solid #f59e0b;border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
+      <div style="background:var(--card);border:2px solid #f59e0b;border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
         <div style="font-size:48px;margin-bottom:12px">⛔</div>
         <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:#1a202c">לא ניתן למחוק</div>
         <div style="color:#64748b;font-size:13px;margin-bottom:24px">ההובלה כבר בביצוע — יש נהג פעיל. לא ניתן למחוק הובלה לאחר שנהג אישר.</div>
@@ -1510,7 +1509,7 @@ function deleteShipment(id, btn) {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px';
     overlay.innerHTML = `
-      <div style="background:#fff;border:2px solid #ef4444;border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
+      <div style="background:var(--card);border:2px solid #ef4444;border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
         <div style="font-size:48px;margin-bottom:12px">🔒</div>
         <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:#1a202c">כסף בנאמנות</div>
         <div style="color:#64748b;font-size:13px;margin-bottom:24px">יש כסף בנאמנות שעדיין לא הועבר לנהג. יש להעביר את התשלום לנהג לפני מחיקת ההובלה.</div>
@@ -1525,7 +1524,7 @@ function deleteShipment(id, btn) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px';
   overlay.innerHTML = `
-    <div style="background:#fff;border:1px solid rgba(239,68,68,.3);border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
+    <div style="background:var(--card);border:1px solid rgba(239,68,68,.3);border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
       <div style="font-size:48px;margin-bottom:12px">🗑️</div>
       <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:#1a202c">מחק הובלה?</div>
       <div style="color:#64748b;font-size:13px;margin-bottom:24px">פעולה זו לא ניתנת לביטול</div>
@@ -1970,7 +1969,7 @@ function openNewShipment() {
   if (dateInput) { dateInput.value = today; dateInput.min = today; }
 }
 
-const INP = 'width:100%;padding:11px 13px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;color:#1a202c;font-size:13px;outline:none;font-family:inherit;direction:rtl;transition:border-color .18s';
+const INP = 'width:100%;padding:11px 13px;background:var(--card2);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:inherit;direction:rtl;transition:border-color .18s';
 
 function selectVehicle(v, btn) {
   document.querySelectorAll('[data-v]').forEach(b => {
@@ -2246,7 +2245,7 @@ function showAuthModal() {
   document.body.appendChild(overlay);
 }
 
-const AUTH_INP = 'width:100%;padding:11px 13px;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;color:#1a202c;font-size:13px;outline:none;font-family:inherit;direction:rtl;transition:border-color .18s';
+const AUTH_INP = 'width:100%;padding:11px 13px;background:var(--card2);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:inherit;direction:rtl;transition:border-color .18s';
 
 let selectedRole = '';
 
