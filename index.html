@@ -697,6 +697,7 @@ async function renderMyShipments() {
 
   container.innerHTML = data.map((b, idx) => {
     const s = b.shipments || {};
+    console.log('driver card:', b.shipment_id, 'bid:', b.status, 'ship:', s.status, 'escrow:', s.escrow_paid);
     const businessName = s.profiles?.full_name || 'עסק';
     const businessPhone = s.profiles?.phone || '';
     const unread = unreadCounts[b.shipment_id] || 0;
