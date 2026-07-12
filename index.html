@@ -40,8 +40,8 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 #main { flex:1; display:flex; overflow:hidden; position:relative; }
 
 /* MAP - left 40% */
-#map-wrap { width:40%; min-width:300px; position:relative; flex-shrink:0; border-left:1px solid var(--border); min-height:300px; }
-#map { width:100%; height:100%; min-height:300px; }
+#map-wrap { width:40%; min-width:300px; position:relative; flex-shrink:0; border-left:1px solid var(--border); height:100%; }
+#map { width:100%; height:100%; position:absolute; top:0; left:0; right:0; bottom:0; }
 .leaflet-container { background:#e8eef4 !important; }
 .leaflet-control-zoom a { background:#fff!important; color:#475569!important; border-color:#e2e8f0!important; box-shadow:var(--shadow-sm)!important; }
 .leaflet-control-zoom a:hover { background:#f8f9fc!important; color:var(--text)!important; }
@@ -144,7 +144,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
     <button id="btn-driver" onclick="setMode('driver')" style="padding:6px 16px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s">🚛 נהג</button>
     <button id="btn-business" onclick="setMode('business')" style="padding:6px 16px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s">🏢 עסק</button>
   </div>
-  <div class="live"><div class="dot"></div><span id="live-count">12 הובלות זמינות</span></div>
+  <div class="live" style="white-space:nowrap"><div class="dot"></div><span id="live-count" style="font-size:11px">12 הובלות זמינות</span></div>
 </div>
 
 <div id="main">
@@ -188,7 +188,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
   <div id="sidebar">
 
     <!-- EARNINGS BAR -->
-    <div id="earnings" style="padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(8,9,20,.92);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;pointer-events:all">
+    <div id="earnings" style="padding:10px 14px;border-bottom:1px solid var(--border);background:#fff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;pointer-events:all">
       <div class="earn-item" style="cursor:pointer" onclick="switchTab('all')">
         <div class="label">הכנסה השבוע</div>
         <div class="val" id="weekly-income">₪0</div>
@@ -2562,6 +2562,8 @@ async function loadShipmentsFromDB() {
     document.getElementById('live-count').textContent = SHIPMENTS.length + ' הובלות זמינות';
     loadMyAcceptedShipments();
     loadUnreadCounts();
+    // תקן גודל מפה אחרי טעינת נתונים
+    setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 200);
 
   } else {
     // עסק – טוען הובלות שלו
