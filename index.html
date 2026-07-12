@@ -755,7 +755,7 @@ async function renderMyShipments() {
       </div>` : ''}
 
       <!-- אזור מורחב - פרטים נוספים -->
-      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff">
+      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);overflow:visible;background:#fff">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
           ${s.weight ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">⚖️ ${s.weight}ק"ג</span>` : ''}
           ${s.pickup_date ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
