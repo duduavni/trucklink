@@ -93,6 +93,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 #modal { background:#fff; border:1px solid var(--border); border-radius:24px; padding:24px; width:100%; max-width:440px; box-shadow:var(--shadow-lg); }
 
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes celebrationBounce { 0%{transform:scale(0.8);opacity:0} 60%{transform:scale(1.1)} 80%{transform:scale(0.96)} 100%{transform:scale(1);opacity:1} }
 
 .r-chip { flex:1; padding:5px 0; border-radius:6px; border:1.5px solid var(--border); background:#fff; color:var(--muted); font-family:inherit; font-size:11px; font-weight:600; cursor:pointer; transition:all .18s; }
 .r-chip:hover { border-color:var(--accent); color:var(--accent); }
@@ -694,7 +695,7 @@ async function renderMyShipments() {
 
   const { data, error } = await sb
     .from('bids')
-    .select('id, price, shipment_id, status, shipments(id, from_city, to_city, title, base_price, weight, pickup_date, description, image_urls, status, business_id, escrow_paid, profiles(full_name, phone))')
+    .select('id, price, shipment_id, status, shipments(id, from_city, to_city, title, base_price, weight, pickup_date, description, image_urls, status, business_id, escrow_paid, driver_paid, profiles(full_name, phone))')
     .eq('driver_id', currentUser.id)
     .in('status', ['accepted', 'driver_confirmed', 'chosen']);
 
@@ -788,11 +789,15 @@ async function renderMyShipments() {
               </div>`}
           ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);color:#16a34a;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
         </div>
-        ${(s.status === 'done' || (s.driver_paid)) ? `
-        <div style="background:linear-gradient(135deg,rgba(22,163,74,.1),rgba(22,163,74,.05));border:1.5px solid rgba(22,163,74,.3);border-radius:12px;padding:14px;margin-top:8px;text-align:center">
-          <div style="font-size:40px;margin-bottom:6px">🎉</div>
-          <div style="font-weight:800;font-size:15px;color:#16a34a">הובלה בוצעה בהצלחה!</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
+        ${s.driver_paid ? `
+        <div style="background:linear-gradient(135deg,rgba(22,163,74,.12),rgba(22,163,74,.06));border:1.5px solid rgba(22,163,74,.4);border-radius:12px;padding:16px;margin-top:8px;text-align:center;animation:celebrationBounce .6s ease both">
+          <div style="font-size:44px;margin-bottom:6px">🎉</div>
+          <div style="font-weight:800;font-size:15px;color:#16a34a">הובלה הושלמה ותשלום התקבל!</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;font-family:monospace;font-weight:700">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
+        </div>` : s.status === 'delivered' ? `
+        <div style="background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.3);border-radius:12px;padding:12px;margin-top:8px;text-align:center">
+          <div style="font-size:32px;margin-bottom:4px">⏳</div>
+          <div style="font-weight:700;font-size:13px;color:var(--accent)">ממתין לאישור העסק ושחרור תשלום</div>
         </div>` : ''}
         ${renderTrackingBar(b.shipment_id, (b.status === 'chosen' && (s.status === 'accepted' || !s.status)) ? 'driver_confirmed' : (s.status || 'accepted'), true, b.status, s.escrow_paid)}
       </div>
@@ -940,24 +945,35 @@ function showToast(msg,color='var(--green)'){
 function playPaymentSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const notes = [880, 1318.5]; // A5 → E6, צליל "צ'ינג" שמח
-    notes.forEach((freq, i) => {
+    // צליל מטבעות קזינו — סדרה של "טינג" עולה ויורדת
+    const coinHits = [
+      { freq: 1200, delay: 0.00, vol: 0.3 },
+      { freq: 1400, delay: 0.08, vol: 0.35 },
+      { freq: 1600, delay: 0.16, vol: 0.4 },
+      { freq: 1800, delay: 0.24, vol: 0.4 },
+      { freq: 2000, delay: 0.32, vol: 0.35 },
+      { freq: 1800, delay: 0.40, vol: 0.3 },
+      { freq: 1600, delay: 0.48, vol: 0.25 },
+      { freq: 2200, delay: 0.56, vol: 0.4 },
+      { freq: 2400, delay: 0.64, vol: 0.35 },
+      { freq: 2000, delay: 0.72, vol: 0.2 },
+    ];
+    coinHits.forEach(({ freq, delay, vol }) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'sine';
+      osc.type = 'triangle';
       osc.frequency.value = freq;
       osc.connect(gain);
       gain.connect(ctx.destination);
-      const start = ctx.currentTime + i * 0.12;
+      const start = ctx.currentTime + delay;
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+      gain.gain.linearRampToValueAtTime(vol, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
       osc.start(start);
-      osc.stop(start + 0.4);
+      osc.stop(start + 0.2);
     });
-  } catch (e) { /* דפדפן לא תומך - לא נורא */ }
+  } catch (e) { /* דפדפן לא תומך */ }
 }
-
 // ── Render Markers ──
 function renderMarkers() {
   // clear old
