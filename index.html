@@ -74,9 +74,10 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 #list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 12px 80px; display:flex; flex-direction:column; gap:8px; min-height:0; pointer-events:all; }
 
 /* SHIP CARDS - light style */
-.ship-card { background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:12px 14px; cursor:pointer; transition:all .18s; position:relative; overflow:hidden; box-shadow:var(--shadow-sm); }
-.ship-card:hover, .ship-card.hovered { border-color:#f5a623; box-shadow:var(--shadow-md); transform:translateY(-1px); }
-.ship-card.selected { border-color:var(--accent); box-shadow:0 0 0 3px rgba(245,166,35,.15); }
+.ship-card { background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:12px 14px; cursor:pointer; transition:all .2s; position:relative; overflow:hidden; box-shadow:var(--shadow-sm); }
+.ship-card:hover, .ship-card.hovered { transform:translateY(-2px); }
+.ship-card.selected { transform:translateY(-1px); }
+.ship-card .neon-bar { position:absolute; top:0; right:0; width:4px; height:100%; border-radius:0 12px 12px 0; }
 .ship-card .urgent-badge { position:absolute; top:0; left:0; background:var(--red); color:#fff; font-size:8px; font-weight:800; padding:2px 6px; border-radius:11px 0 7px 0; }
 .card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:5px; }
 .card-route { font-weight:700; font-size:12px; color:var(--text); }
@@ -746,7 +747,9 @@ async function renderMyShipments() {
       : 'rgba(34,197,94,.25)';
 
     return `
-    <div style="background:#fff;border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+    <div style="background:#fff;border:1.5px solid ${cardBorderColor};border-radius:12px;overflow:hidden;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06);position:relative">
+      <!-- פס ניאון שמאלי לפי סטטוס -->
+      <div style="position:absolute;top:0;right:0;width:4px;height:100%;background:${cardBorderColor};border-radius:0 12px 12px 0"></div>
       <!-- שורת כותרת - לחץ לפתיחה/סגירה -->
       <div onclick="toggleMyShipment('ms-${idx}')" style="padding:11px 12px;display:flex;align-items:center;gap:8px;cursor:pointer">
         <div style="flex:1;min-width:0">
@@ -951,43 +954,36 @@ function playPaymentSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-    function playCoin(delay) {
-      // רעש לבן קצר (מרקם המתכת של מטבע)
-      const bufSize = ctx.sampleRate * 0.05;
-      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
-      const noise = ctx.createBufferSource();
-      noise.buffer = buf;
-      const noiseGain = ctx.createGain();
-      const noiseFilter = ctx.createBiquadFilter();
-      noiseFilter.type = 'bandpass';
-      noiseFilter.frequency.value = 4000;
-      noiseFilter.Q.value = 0.5;
-      noise.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(ctx.destination);
-      noiseGain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.05);
-      noise.start(ctx.currentTime + delay);
-      noise.stop(ctx.currentTime + delay + 0.06);
+    function playCoin(delay, pitch) {
+      const t = ctx.currentTime + delay;
+      // שכבה 1: קליק מתכתי חד
+      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.03), ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const flt = ctx.createBiquadFilter(); flt.type = 'highpass'; flt.frequency.value = 3000;
+      const g1 = ctx.createGain(); g1.gain.setValueAtTime(0.4, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+      src.connect(flt); flt.connect(g1); g1.connect(ctx.destination);
+      src.start(t); src.stop(t + 0.04);
 
-      // צליל מתכתי (התהודה של המטבע)
+      // שכבה 2: צליל מתכתי מהדהד
       const osc = ctx.createOscillator();
-      const oscGain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(2500, ctx.currentTime + delay);
-      osc.frequency.exponentialRampToValueAtTime(1800, ctx.currentTime + delay + 0.15);
-      osc.connect(oscGain);
-      oscGain.connect(ctx.destination);
-      oscGain.gain.setValueAtTime(0.2, ctx.currentTime + delay);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
-      osc.start(ctx.currentTime + delay);
-      osc.stop(ctx.currentTime + delay + 0.22);
+      const osc2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.setValueAtTime(pitch, t); osc.frequency.exponentialRampToValueAtTime(pitch * 0.7, t + 0.25);
+      osc2.type = 'sine'; osc2.frequency.setValueAtTime(pitch * 2.76, t); osc2.frequency.exponentialRampToValueAtTime(pitch * 2.0, t + 0.2);
+      osc.connect(g2); osc2.connect(g2); g2.connect(ctx.destination);
+      g2.gain.setValueAtTime(0.18, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.start(t); osc.stop(t + 0.32);
+      osc2.start(t); osc2.stop(t + 0.28);
     }
 
-    // 8 מטבעות ברצף מהיר
-    [0, 0.09, 0.18, 0.27, 0.36, 0.48, 0.58, 0.70].forEach(d => playCoin(d));
+    // קזינו: 6 מטבעות מהירים + 2 מאוחרים (נשמע כמו ערמה נופלת)
+    const coins = [
+      [0.00, 1400], [0.07, 1600], [0.14, 1300], [0.20, 1700],
+      [0.26, 1500], [0.32, 1800], [0.44, 1400], [0.54, 1600],
+    ];
+    coins.forEach(([d, p]) => playCoin(d, p));
 
   } catch (e) { /* דפדפן לא תומך */ }
 }
@@ -1036,30 +1032,30 @@ function renderList() {
     const net    = Math.round(s.price * 0.90);
     const div    = document.createElement('div');
     div.className = 'ship-card' + (isSel ? ' selected' : '');
-    div.style.borderColor = isSel ? color : hasBid ? 'rgba(34,197,94,.6)' : 'var(--border)';
-    if (hasBid) div.style.background = 'rgba(21,32,26,.85)';
+    div.style.cssText = `border-color:${isSel ? color : hasBid ? '#16a34a' : 'var(--border)'};box-shadow:${isSel ? `0 0 0 2px ${color}33, 0 4px 16px ${color}22` : hasBid ? '0 0 0 1.5px rgba(22,163,74,.3)' : 'var(--shadow-sm)'};background:${hasBid ? '#f0fdf4' : '#fff'}`;
     div.innerHTML = `
+      <div class="neon-bar" style="background:${color};box-shadow:0 0 8px ${color}88"></div>
       ${s.urgent && !hasBid ? '<div class="urgent-badge">🔥 דחוף</div>' : ''}
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:7px">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:right">${CITIES[s.fromId].name} → ${CITIES[s.toId].name}</div>
           <div style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap">
-            <span style="background:var(--deep);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--muted)">${s.type.icon} ${s.type.label}</span>
-            <span style="background:var(--deep);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--muted)">⚖️ ${s.weight}ק"ג</span>
-            <span style="background:var(--deep);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--muted)">📏 ${dist}ק"מ</span>
-            <span style="background:var(--deep);border-radius:5px;padding:2px 6px;font-size:10px;color:var(--muted)">📅 ${s.date}</span>
+            <span style="background:${color}18;color:${color};border-radius:5px;padding:2px 6px;font-size:10px;font-weight:700">${s.type.icon} ${s.type.label}</span>
+            <span style="background:#f1f5f9;border-radius:5px;padding:2px 6px;font-size:10px;color:#64748b">⚖️ ${s.weight}ק"ג</span>
+            <span style="background:#f1f5f9;border-radius:5px;padding:2px 6px;font-size:10px;color:#64748b">📏 ${dist}ק"מ</span>
+            <span style="background:#f1f5f9;border-radius:5px;padding:2px 6px;font-size:10px;color:#64748b">📅 ${s.date}</span>
           </div>
         </div>
         <div style="text-align:left;margin-right:10px;flex-shrink:0">
-          <div style="font-family:monospace;font-weight:900;font-size:18px;color:${color}">₪${s.price}</div>
-          <div style="font-size:11px;color:var(--green);font-weight:600">נטו ₪${net}</div>
+          <div style="font-family:monospace;font-weight:900;font-size:18px;color:${color};text-shadow:0 0 12px ${color}66">₪${s.price}</div>
+          <div style="font-size:11px;color:#16a34a;font-weight:600">נטו ₪${net}</div>
         </div>
       </div>
-      ${s.description ? `<div style="font-size:11px;color:var(--muted);margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;background:#f8fafc;border-radius:6px">"${s.description}"</div>` : ''}
+      ${s.description ? `<div style="font-size:11px;color:#64748b;margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;background:#f8fafc;border-radius:6px">"${s.description}"</div>` : ''}
       ${hasBid
-        ? `<div style="background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;text-align:center">✓ הצעה הוגשה — ממתין לתגובת העסק</div>`
+        ? `<div style="background:rgba(22,163,74,.1);color:#16a34a;border:1px solid rgba(22,163,74,.3);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;text-align:center">✓ הצעה הוגשה — ממתין לתגובת העסק</div>`
         : `<button onclick="event.stopPropagation();openBid(SHIPMENTS.find(x=>x.id==='${s.id}'))"
-            style="width:100%;background:var(--accent);border:none;color:var(--black);border-radius:8px;padding:9px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800">
+            style="width:100%;background:${color};border:none;color:#fff;border-radius:8px;padding:9px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:800;box-shadow:0 2px 12px ${color}55">
             🚛 הגש הצעה ₪${s.price}
           </button>`
       }`;
@@ -1453,16 +1449,53 @@ async function saveEditShipment(id, btn, isLocked) {
 
 // ── מחיקת הובלה ──────────────────────────────────────────────
 function deleteShipment(id, btn) {
+  const s = BUSINESS_SHIPMENTS.find(x => x.id === id);
+  if (!s) return;
+
+  // חסום מחיקה אם יש נהג פעיל
+  if (['driver_confirmed','pickup','on_the_way'].includes(s.status)) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px';
+    overlay.innerHTML = `
+      <div style="background:#fff;border:2px solid #f59e0b;border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
+        <div style="font-size:48px;margin-bottom:12px">⛔</div>
+        <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:#1a202c">לא ניתן למחוק</div>
+        <div style="color:#64748b;font-size:13px;margin-bottom:24px">ההובלה כבר בביצוע — יש נהג פעיל. לא ניתן למחוק הובלה לאחר שנהג אישר.</div>
+        <button onclick="this.closest('[style*=fixed]').remove()"
+          style="width:100%;background:#f59e0b;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800">הבנתי</button>
+      </div>`;
+    overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+    return;
+  }
+
+  // חסום מחיקה אם שולם לנאמנות ועדיין לא שוחרר לנהג
+  if (s.escrow_paid && !s.driver_paid) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px';
+    overlay.innerHTML = `
+      <div style="background:#fff;border:2px solid #ef4444;border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
+        <div style="font-size:48px;margin-bottom:12px">🔒</div>
+        <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:#1a202c">כסף בנאמנות</div>
+        <div style="color:#64748b;font-size:13px;margin-bottom:24px">יש כסף בנאמנות שעדיין לא הועבר לנהג. יש להעביר את התשלום לנהג לפני מחיקת ההובלה.</div>
+        <button onclick="this.closest('[style*=fixed]').remove()"
+          style="width:100%;background:#ef4444;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800">הבנתי</button>
+      </div>`;
+    overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+    return;
+  }
+
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px';
   overlay.innerHTML = `
-    <div style="background:var(--deep);border:1px solid rgba(239,68,68,.3);border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
+    <div style="background:#fff;border:1px solid rgba(239,68,68,.3);border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
       <div style="font-size:48px;margin-bottom:12px">🗑️</div>
-      <div style="font-weight:800;font-size:18px;margin-bottom:8px">מחק הובלה?</div>
-      <div style="color:var(--muted);font-size:13px;margin-bottom:24px">פעולה זו לא ניתנת לביטול</div>
+      <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:#1a202c">מחק הובלה?</div>
+      <div style="color:#64748b;font-size:13px;margin-bottom:24px">פעולה זו לא ניתנת לביטול</div>
       <div style="display:flex;gap:10px">
         <button onclick="this.closest('[style*=fixed]').remove()"
-          style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:12px;cursor:pointer;font-family:inherit">ביטול</button>
+          style="flex:1;background:transparent;border:1px solid #e2e8f0;color:#64748b;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit">ביטול</button>
         <button onclick="confirmDelete('${id}',this)"
           style="flex:1;background:#ef4444;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800">מחק</button>
       </div>
@@ -2058,9 +2091,10 @@ async function initAuth() {
 async function loadDriverStats() {
   if (!currentUser || currentProfile?.role !== 'driver') return;
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // נבדוק הכנסות לפי bids עם driver_paid — גם אם העסק מחק את ההובלה
   const { data } = await sb
     .from('bids')
-    .select('price, shipments(status, driver_paid, driver_paid_at)')
+    .select('price, shipments(driver_paid, driver_paid_at)')
     .eq('driver_id', currentUser.id)
     .eq('status', 'chosen');
   if (!data) return;
