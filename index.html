@@ -772,8 +772,21 @@ async function renderMyShipments() {
         </button>
       </div>` : ''}
 
-      <!-- אזור מורחב - פרטים נוספים -->
-      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);overflow:visible;background:#fff">
+      <!-- Tracking bar וסטיקר — תמיד גלויים, מחוץ לאזור המכווץ -->
+      ${s.driver_paid ? `
+      <div style="padding:0 12px 12px">
+        <div style="background:linear-gradient(135deg,rgba(22,163,74,.12),rgba(22,163,74,.06));border:1.5px solid rgba(22,163,74,.4);border-radius:12px;padding:16px;text-align:center;animation:celebrationBounce .6s ease both">
+          <div style="font-size:44px;margin-bottom:6px">🎉</div>
+          <div style="font-weight:800;font-size:15px;color:#16a34a">הובלה הושלמה ותשלום התקבל!</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;font-family:monospace;font-weight:700">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
+        </div>
+      </div>` : `
+      <div style="padding:0 12px 12px">
+        ${renderTrackingBar(b.shipment_id, (b.status === 'chosen' && (s.status === 'accepted' || !s.status)) ? 'driver_confirmed' : (s.status || 'accepted'), true, b.status, s.escrow_paid)}
+      </div>`}
+
+      <!-- אזור מורחב - פרטים נוספים (לחץ לפתיחה) -->
+      <div id="ms-${idx}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);background:#fff">
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
           ${s.weight ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">⚖️ ${s.weight}ק"ג</span>` : ''}
           ${s.pickup_date ? `<span style="background:#f1f5f9;border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted)">📅 ${new Date(s.pickup_date).toLocaleDateString('he-IL')}</span>` : ''}
@@ -792,17 +805,6 @@ async function renderMyShipments() {
               </div>`}
           ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);color:#16a34a;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
         </div>
-        ${s.driver_paid ? `
-        <div style="background:linear-gradient(135deg,rgba(22,163,74,.12),rgba(22,163,74,.06));border:1.5px solid rgba(22,163,74,.4);border-radius:12px;padding:16px;margin-top:8px;text-align:center;animation:celebrationBounce .6s ease both">
-          <div style="font-size:44px;margin-bottom:6px">🎉</div>
-          <div style="font-weight:800;font-size:15px;color:#16a34a">הובלה הושלמה ותשלום התקבל!</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:4px;font-family:monospace;font-weight:700">₪${Math.round(b.price * 0.90)} הועבר לחשבונך</div>
-        </div>` : s.status === 'delivered' ? `
-        <div style="background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.3);border-radius:12px;padding:12px;margin-top:8px;text-align:center">
-          <div style="font-size:32px;margin-bottom:4px">⏳</div>
-          <div style="font-weight:700;font-size:13px;color:var(--accent)">ממתין לאישור העסק ושחרור תשלום</div>
-        </div>` : ''}
-        ${renderTrackingBar(b.shipment_id, (b.status === 'chosen' && (s.status === 'accepted' || !s.status)) ? 'driver_confirmed' : (s.status || 'accepted'), true, b.status, s.escrow_paid)}
       </div>
     </div>`;
   }).join('');
