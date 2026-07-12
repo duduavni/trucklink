@@ -68,7 +68,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 .filter-btn:hover { border-color:var(--accent); color:var(--accent); }
 .filter-btn.active { border-color:var(--accent); background:rgba(245,166,35,.1); color:var(--accent); }
 #list-header { padding:8px 14px 4px; display:flex; justify-content:space-between; font-size:11px; color:var(--muted); flex-shrink:0; background:var(--deep); pointer-events:all; }
-#list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 12px 12px; display:flex; flex-direction:column; gap:8px; min-height:0; pointer-events:all; }
+#list { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 12px 80px; display:flex; flex-direction:column; gap:8px; min-height:0; pointer-events:all; }
 
 /* SHIP CARDS - light style */
 .ship-card { background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:12px 14px; cursor:pointer; transition:all .18s; position:relative; overflow:hidden; box-shadow:var(--shadow-sm); }
@@ -121,15 +121,16 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 
 @media (max-width:768px) {
   #main { flex-direction:column !important; }
-  #map-wrap { width:100% !important; height:67vh !important; min-width:unset !important; border-left:none !important; flex-shrink:0 !important; }
-  #sidebar { width:100% !important; height:33vh !important; position:relative !important; bottom:auto !important; top:auto !important; right:auto !important; left:auto !important; border-radius:20px 20px 0 0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; box-shadow:0 -4px 20px rgba(0,0,0,.1) !important; pointer-events:all !important; }
-  #list { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; }
-  #my-shipments-tab { flex:1 !important; overflow-y:auto !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; pointer-events:all !important; }
-  /* route-info ימינה, zoom-controls שמאלה — לא מתנגשים */
+  #map-wrap { width:100% !important; height:45vh !important; min-width:unset !important; border-left:none !important; flex-shrink:0 !important; }
+  #sidebar { width:100% !important; height:55vh !important; position:relative !important; bottom:auto !important; top:auto !important; right:auto !important; left:auto !important; border-radius:16px 16px 0 0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; box-shadow:0 -4px 20px rgba(0,0,0,.12) !important; pointer-events:all !important; }
+  #list { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; overscroll-behavior:contain !important; }
+  #my-shipments-tab { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; pointer-events:all !important; overscroll-behavior:contain !important; }
   #route-info { right:8px !important; left:auto !important; top:8px !important; min-width:unset !important; max-width:calc(50vw) !important; }
   .leaflet-top.leaflet-left { top:8px !important; left:8px !important; }
   #hint { display:none !important; }
-  .earn-item .val { font-size:15px !important; }
+  .earn-item .val { font-size:14px !important; }
+  /* מנע מהמפה לקבל scroll events שמיועדים לרשימה */
+  #map-wrap { touch-action:pan-x pan-y !important; }
 }
 </style>
 </head>
@@ -272,7 +273,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--deep); color:va
 
     <div id="list-header"><span id="list-count"></span><span style="color:var(--accent)">לפי מחיר ↓</span></div>
     <div id="list"></div>
-    <div id="my-shipments-tab" style="display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 80px;box-sizing:border-box;flex:1;min-height:0;pointer-events:all"></div>
+    <div id="my-shipments-tab" style="display:none;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 10px 80px;box-sizing:border-box;flex:1;min-height:0;pointer-events:all;overscroll-behavior:contain"></div>
   </div>
 
   <!-- BUSINESS VIEW -->
@@ -456,7 +457,7 @@ let routeLayer    = null;
 let popup         = null;
 
 // ── Init Map ──
-const map = L.map('map', { center:[31.5,35.0], zoom:8, zoomControl:true });
+const map = L.map('map', { center:[31.8,34.9], zoom:7, zoomControl:true });
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:19
@@ -539,7 +540,7 @@ function selectShipment(id) {
     document.getElementById('route-info').style.display='none';
     document.getElementById('hint').style.display='block';
     drawRoute(null);
-    map.setView([31.5,35.0],8);
+    map.setView([31.8,34.9],7);
     return;
   }
 
@@ -905,7 +906,7 @@ function clearRadius(){
   currentFilter='all';
   document.querySelectorAll('.filter-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
   renderMarkers(); renderList();
-  map.setView([31.5,35.0],8);
+  map.setView([31.8,34.9],7);
 }
 
 function showToast(msg,color='var(--green)'){
