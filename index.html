@@ -697,7 +697,6 @@ async function renderMyShipments() {
 
   container.innerHTML = data.map((b, idx) => {
     const s = b.shipments || {};
-    console.log('driver card:', b.shipment_id, 'bid:', b.status, 'ship:', s.status, 'escrow:', s.escrow_paid);
     const businessName = s.profiles?.full_name || 'עסק';
     const businessPhone = s.profiles?.phone || '';
     const unread = unreadCounts[b.shipment_id] || 0;
@@ -775,7 +774,7 @@ async function renderMyShipments() {
               </div>`}
           ${businessPhone && s.escrow_paid && ['driver_confirmed','pickup','on_the_way','delivered','done'].includes(s.status || '') ? `<a href="tel:${businessPhone}" style="background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.3);color:#16a34a;border-radius:8px;padding:8px 12px;display:flex;align-items:center;text-decoration:none;font-size:14px">📞</a>` : ''}
         </div>
-        ${renderTrackingBar(b.shipment_id, b.status === 'chosen' ? 'driver_confirmed' : (s.status || 'accepted'), true, b.status, s.escrow_paid)}
+        ${renderTrackingBar(b.shipment_id, (b.status === 'chosen' && (s.status === 'accepted' || !s.status)) ? 'driver_confirmed' : (s.status || 'accepted'), true, b.status, s.escrow_paid)}
       </div>
     </div>`;
   }).join('');
