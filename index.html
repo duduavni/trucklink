@@ -283,7 +283,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 
     <div id="list-header" style="padding:6px 14px 4px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted);flex-shrink:0;background:var(--deep);pointer-events:all"><span id="list-count"></span><span style="color:var(--accent);font-weight:700">לפי מחיר ↓</span></div>
     <div id="list"></div>
-    <div id="my-shipments-tab" style="display:none;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 10px 80px;box-sizing:border-box;flex:1;min-height:0;pointer-events:all;overscroll-behavior:contain"></div>
+    <div id="my-shipments-tab" style="display:none;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 10px 120px;box-sizing:border-box;flex:1;min-height:0;pointer-events:all;overscroll-behavior:contain;position:relative"></div>
   </div>
 
   <!-- BUSINESS VIEW -->
@@ -716,7 +716,23 @@ async function renderMyShipments() {
     return;
   }
 
-  container.innerHTML = data.map((b, idx) => {
+  // דדופ לפי shipment_id — עדיפות: chosen > driver_confirmed > accepted
+  const priority = { chosen: 3, driver_confirmed: 2, accepted: 1 };
+  const seen = new Map();
+  data.forEach(b => {
+    const existing = seen.get(b.shipment_id);
+    if (!existing || (priority[b.status] || 0) > (priority[existing.status] || 0)) {
+      seen.set(b.shipment_id, b);
+    }
+  });
+  const dedupedData = Array.from(seen.values());
+
+  // וודא שה-container גולל נכון
+  container.style.overflowY = 'scroll';
+  container.style.webkitOverflowScrolling = 'touch';
+  container.style.overscrollBehavior = 'contain';
+
+  container.innerHTML = dedupedData.map((b, idx) => {
     const s = b.shipments || {};
     const businessName = s.profiles?.full_name || 'עסק';
     const businessPhone = s.profiles?.phone || '';
