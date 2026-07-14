@@ -992,6 +992,11 @@ function clearRadius(){
 }
 
 function showToast(msg,color='var(--green)'){
+  // צליל שגיאה רק לטוסטים אדומים (שגיאה/חסימה) — לא לצהוב/ירוק
+  try {
+    const isErr = /ef4444|ff1744|dc2626|--red|#f00|#e11|#e53/i.test(String(color));
+    if (isErr && typeof sfxError === 'function') sfxError();
+  } catch(e) {}
   const t=document.createElement('div');
   t.style.cssText=`position:fixed;top:16px;left:50%;transform:translateX(-50%);background:${color};color:${color.includes('green')?'#08090c':'#fff'};padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.4);white-space:nowrap`;
   t.textContent=msg; document.body.appendChild(t);
@@ -1000,6 +1005,7 @@ function showToast(msg,color='var(--green)'){
 
 // ── צליל קבלת תשלום - שני צלילים עולים, ללא קובץ חיצוני ──
 function playPaymentSound() {
+  if (!soundEnabled) return;
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -1036,7 +1042,93 @@ function playPaymentSound() {
 
   } catch (e) { /* דפדפן לא תומך */ }
 }
-// ── Render Markers ──
+
+// ══════════════════════════════════════════════════════════════
+// SOUND ENGINE — צלילי חוויית משתמש (Web Audio, ללא קבצים חיצוניים)
+// ══════════════════════════════════════════════════════════════
+let soundEnabled = true;
+try { soundEnabled = (localStorage.getItem('tl_sound') !== 'off'); } catch(e) {}
+let _sfxCtx = null;
+function _actx() {
+  try {
+    if (!_sfxCtx) _sfxCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_sfxCtx.state === 'suspended') _sfxCtx.resume().catch(()=>{});
+    return _sfxCtx;
+  } catch (e) { return null; }
+}
+// שחרור נעילת האודיו בפעולת המשתמש הראשונה (מדיניות autoplay של דפדפנים)
+['click','touchstart','keydown'].forEach(ev =>
+  window.addEventListener(ev, () => _actx(), { once:true, passive:true }));
+
+function _tone(ctx, { freq, type='sine', start=0, dur=0.2, gain=0.2, glideTo=null, attack=0.012 }) {
+  const t = ctx.currentTime + start;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  if (glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(t); osc.stop(t + dur + 0.03);
+}
+
+// 📨 העסק בחר בנהג — צליל חיובי עולה שמושך תשומת לב
+function sfxChosen() {
+  if (!soundEnabled) return; const c = _actx(); if (!c) return;
+  _tone(c, { freq:587.33, type:'triangle', start:0,    dur:0.18, gain:0.22 }); // D5
+  _tone(c, { freq:880,    type:'triangle', start:0.12, dur:0.30, gain:0.24 }); // A5
+  _tone(c, { freq:1760,   type:'sine',     start:0.12, dur:0.30, gain:0.05 }); // נצנוץ
+}
+
+// 🚛 הצעה חדשה מנהג (לעסק) — התראה נעימה, "דינג-דינג" עדין
+function sfxNewBid() {
+  if (!soundEnabled) return; const c = _actx(); if (!c) return;
+  _tone(c, { freq:523.25, type:'sine', start:0,    dur:0.16, gain:0.20 }); // C5
+  _tone(c, { freq:659.25, type:'sine', start:0.13, dur:0.24, gain:0.20 }); // E5
+}
+
+// 💬 הודעת צ'אט חדשה — "בלופ" קליל
+function sfxChat() {
+  if (!soundEnabled) return; const c = _actx(); if (!c) return;
+  _tone(c, { freq:660, type:'sine', start:0, dur:0.10, gain:0.15, glideTo:990 });
+}
+
+// ⚠️ שגיאה / פעולה חסומה — צליל נמוך קצר, לא מאיים
+function sfxError() {
+  if (!soundEnabled) return; const c = _actx(); if (!c) return;
+  _tone(c, { freq:220, type:'sawtooth', start:0,    dur:0.14, gain:0.10, glideTo:150 });
+  _tone(c, { freq:160, type:'sine',     start:0.10, dur:0.14, gain:0.09 });
+}
+
+// כפתור השתקה בבר העליון
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  try { localStorage.setItem('tl_sound', soundEnabled ? 'on' : 'off'); } catch(e) {}
+  updateSoundBtn();
+  if (soundEnabled) sfxChat(); // צליל אישור קטן כשמפעילים
+}
+function updateSoundBtn() {
+  const b = document.getElementById('sound-btn');
+  if (b) {
+    b.textContent = soundEnabled ? '🔊' : '🔇';
+    b.title = soundEnabled ? 'השתק צלילים' : 'הפעל צלילים';
+    b.style.opacity = soundEnabled ? '1' : '.5';
+  }
+}
+function addSoundButton() {
+  const topbar = document.getElementById('topbar');
+  if (!topbar || document.getElementById('sound-btn')) return;
+  const btn = document.createElement('button');
+  btn.id = 'sound-btn';
+  btn.onclick = toggleSound;
+  btn.style.cssText = 'background:transparent;border:none;font-size:18px;cursor:pointer;padding:4px 6px;line-height:1;-webkit-tap-highlight-color:transparent';
+  topbar.appendChild(btn);
+  updateSoundBtn();
+}
+document.addEventListener('DOMContentLoaded', addSoundButton);
+addSoundButton();
 function renderMarkers() {
   // clear old
   Object.values(markers).forEach(m=>m.remove());
@@ -2904,6 +2996,7 @@ function subscribeRealtime() {
     })
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'bids' }, payload => {
       if (currentProfile?.role === 'business') {
+        sfxNewBid();
         showToast(`💬 הצעה חדשה! ₪${payload.new.price}`);
         loadShipmentsFromDB();
       }
@@ -2959,12 +3052,14 @@ function subscribeRealtime() {
       console.log('bid update received:', payload.new?.status, 'driver_id:', payload.new?.driver_id, 'me:', currentUser.id);
       if (payload.new?.driver_id !== currentUser.id) return;
       if (payload.new.status === 'accepted') {
+        sfxChosen();
         showToast('📨 קיבלת בקשת אישור הובלה! לחץ על "שלי"', '#f59e0b');
         sendLocalNotification('בקשת אישור הובלה!', 'עסק בחר בך - פתח "ההובלות שלי" כדי לאשר');
         loadMyAcceptedShipments();
         renderMyShipments();
         setTimeout(() => switchTab('mine'), 500);
       } else if (payload.new.status === 'chosen') {
+        sfxChosen();
         showToast('🎉 העסק בחר אותך לבצע את ההובלה!', '#22c55e');
         sendLocalNotification('נבחרת!', 'העסק בחר בך מתוך הנהגים שאישרו - ממתינים לתשלום לנאמנות');
         loadMyAcceptedShipments();
@@ -3281,6 +3376,7 @@ function subscribeChatRealtime(shipmentId) {
       if (m.shipment_id !== shipmentId) return;
       // אל תציג כפילות - אם ההודעה היא שלי, כבר הצגתי אותה ב-optimistic update
       if (m.sender_id === currentUser?.id) return;
+      sfxChat();
 
       const container = document.getElementById('chat-messages');
       if (!container) {
