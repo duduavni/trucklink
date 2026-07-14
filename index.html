@@ -294,7 +294,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   </div>
 
   <!-- BUSINESS VIEW -->
-  <div id="business-view" style="display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0">
+  <div id="business-view" style="display:none;flex:1;flex-direction:row;overflow:hidden;min-height:0">
     <!-- Business sidebar -->
     <div style="width:320px;background:var(--deep);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;height:100%">
       <!-- Stats -->
@@ -1186,6 +1186,7 @@ renderList();
 // ── MODE SWITCHING ──
 let currentMode = 'driver';
 let bMap = null;
+let bMarkers = [];
 
 const BUSINESS_SHIPMENTS = [
   { id:'b1', title:'ריהוט משרד – 3 פריטים', from:'ראשון לציון', to:'תל אביב', fromLatLng:[31.973,34.793], toLatLng:[32.085,34.782], weight:500, price:680, status:'bidding', bids:4, date:'היום', type:TYPES[1] },
@@ -1239,6 +1240,23 @@ function getStatusColor(s) {
     done:             '#5a6478'
   };
   return map[s] || 'var(--muted)';
+}
+
+function renderBMarkers() {
+  if (!bMap) return;
+  // נקה סמנים קודמים כדי שלא יישארו סמנים ישנים/דמו על המפה
+  bMarkers.forEach(m => { try { bMap.removeLayer(m); } catch(e){} });
+  bMarkers = [];
+  BUSINESS_SHIPMENTS.forEach(s => {
+    if (!s.fromLatLng) return;
+    const color = s.type?.color || '#FEC901';
+    const m = L.marker(s.fromLatLng, { icon: L.divIcon({
+      html:`<div style="background:${color};border:2px solid white;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.6)">${s.type?.icon||'📦'}</div>
+            <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${color};margin:0 auto"></div>`,
+      className:'', iconSize:[26,32], iconAnchor:[13,32]
+    }) }).addTo(bMap).bindPopup(`<div dir="rtl" style="font-family:sans-serif"><b>${s.title||''}</b><br>${s.from} → ${s.to}<br><b style="color:${color}">₪${s.finalPrice||s.price}</b></div>`);
+    bMarkers.push(m);
+  });
 }
 
 function renderBList() {
@@ -1345,6 +1363,11 @@ function renderBList() {
         <span style="font-size:10px;color:var(--muted)">${s.date}</span>
         ${isExpired ? `<span style="font-size:10px;color:#fca5a5">⏰ פג תוקף</span>` : ''}
       </div>
+      <!-- shipment images -->
+      ${s.images?.length ? `
+        <div style="display:flex;gap:5px;margin-bottom:8px;overflow-x:auto;padding-bottom:2px">
+          ${s.images.map(url=>`<img src="${url}" loading="lazy" onclick="event.stopPropagation();window.open('${url}','_blank')" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);flex-shrink:0;cursor:pointer;background:var(--card2)">`).join('')}
+        </div>` : ''}
       <!-- tracking bar (active shipments) -->
       ${['accepted','driver_confirmed','pickup','on_the_way','delivered'].includes(s.status) ? renderTrackingBar(s.id, s.status, false) : ''}
       <!-- proof images -->
@@ -1365,6 +1388,9 @@ function renderBList() {
     div.onclick = () => showBRoute(s);
     list.appendChild(div);
   });
+
+  // סנכרן את סמני המפה עם הנתונים האמיתיים
+  renderBMarkers();
 }
 
 // ── עריכת הובלה ──────────────────────────────────────────────
@@ -2109,19 +2135,12 @@ function setMode(mode) {
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:19
         }).addTo(bMap);
-        // Add markers for all business shipments
-        BUSINESS_SHIPMENTS.forEach(s => {
-          const color = s.type.color;
-          L.marker(s.fromLatLng, { icon: L.divIcon({
-            html:`<div style="background:${color};border:2px solid white;border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.6)">${s.type.icon}</div>
-                  <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${color};margin:0 auto"></div>`,
-            className:'', iconSize:[26,32], iconAnchor:[13,32]
-          }) }).addTo(bMap).bindPopup(`<div dir="rtl" style="font-family:sans-serif"><b>${s.title}</b><br>${s.from} → ${s.to}<br><b style="color:${color}">₪${s.price}</b></div>`);
-        });
         renderBList();
+        renderBMarkers();
       }, 100);
     } else {
       renderBList();
+      renderBMarkers();
       setTimeout(() => { try { bMap.invalidateSize(); } catch(e){} }, 100);
     }
   }
