@@ -1529,18 +1529,19 @@ function deleteShipment(id, btn) {
     return;
   }
 
+  const isPaidShipment = s.driver_paid || s.status === 'done';
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px';
   overlay.innerHTML = `
     <div style="background:var(--card);border:1px solid rgba(239,68,68,.3);border-radius:24px;padding:28px;width:100%;max-width:380px;text-align:center">
-      <div style="font-size:48px;margin-bottom:12px">🗑️</div>
-      <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:#1a202c">מחק הובלה?</div>
-      <div style="color:#64748b;font-size:13px;margin-bottom:24px">פעולה זו לא ניתנת לביטול</div>
+      <div style="font-size:48px;margin-bottom:12px">${isPaidShipment ? '📁' : '🗑️'}</div>
+      <div style="font-weight:800;font-size:18px;margin-bottom:8px;color:#1a202c">${isPaidShipment ? 'להסיר מהרשימה?' : 'מחק הובלה?'}</div>
+      <div style="color:#64748b;font-size:13px;margin-bottom:24px">${isPaidShipment ? 'ההובלה תוסר מהרשימה שלך אך תישמר בהיסטוריה ובהכנסות של הנהג.' : 'פעולה זו לא ניתנת לביטול'}</div>
       <div style="display:flex;gap:10px">
         <button onclick="this.closest('[style*=fixed]').remove()"
           style="flex:1;background:transparent;border:1px solid #e2e8f0;color:#64748b;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit">ביטול</button>
         <button onclick="confirmDelete('${id}',this)"
-          style="flex:1;background:#ef4444;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800">מחק</button>
+          style="flex:1;background:#ef4444;border:none;color:#fff;border-radius:10px;padding:12px;cursor:pointer;font-family:inherit;font-weight:800">${isPaidShipment ? 'הסר' : 'מחק'}</button>
       </div>
     </div>`;
   overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
@@ -1550,9 +1551,19 @@ function deleteShipment(id, btn) {
 async function confirmDelete(id, btn) {
   btn.textContent = 'מוחק...'; btn.disabled = true;
 
+  const s = BUSINESS_SHIPMENTS.find(x => x.id === id);
+  const isPaid = s && (s.driver_paid || s.status === 'done');
+
   if (currentUser) {
-    const { error } = await sb.from('shipments').delete().eq('id', id);
-    if (error) { console.error(error); showToast('שגיאה במחיקה: '+error.message,'#ef4444'); btn.textContent='מחק'; btn.disabled=false; return; }
+    if (isPaid) {
+      // הובלה ששולמה — לא מוחקים מה-DB (זו ההיסטוריה וההכנסה של הנהג!),
+      // רק מסתירים אותה מרשימת העסק
+      const { error } = await sb.from('shipments').update({ business_archived: true }).eq('id', id);
+      if (error) { console.error(error); showToast('שגיאה בהסרה: '+error.message,'#ef4444'); btn.textContent='מחק'; btn.disabled=false; return; }
+    } else {
+      const { error } = await sb.from('shipments').delete().eq('id', id);
+      if (error) { console.error(error); showToast('שגיאה במחיקה: '+error.message,'#ef4444'); btn.textContent='מחק'; btn.disabled=false; return; }
+    }
   }
 
   const idx = BUSINESS_SHIPMENTS.findIndex(x=>x.id===id);
@@ -1560,7 +1571,7 @@ async function confirmDelete(id, btn) {
 
   btn.closest('[style*=fixed]').remove();
   renderBList();
-  showToast('🗑️ ההובלה נמחקה');
+  showToast(isPaid ? '✅ ההובלה הוסרה מהרשימה שלך' : '🗑️ ההובלה נמחקה');
 }
 
 function showBRoute(s) {
@@ -2746,6 +2757,8 @@ async function loadShipmentsFromDB() {
 
     if (!error && data?.length > 0) {
       data.forEach(s => {
+        // הובלה ששולמה והעסק "מחק" אותה מוסתרת אצל העסק בלבד — הנהג עדיין רואה אותה
+        if (s.business_archived) return;
         const chosenBid = s.bids?.find(b => b.status === 'chosen')
           || s.bids?.find(b => b.status === 'driver_confirmed')
           || s.bids?.find(b => b.status === 'accepted');
