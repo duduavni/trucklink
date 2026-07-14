@@ -92,6 +92,7 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 
 /* MY SHIPMENTS TAB */
 #my-shipments-tab { display:none; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px 12px 80px; box-sizing:border-box; flex:1; min-height:0; pointer-events:all; background:var(--black); }
+.driver-my-card { flex-shrink:0 !important; }
 
 /* BID MODAL */
 #modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); backdrop-filter:blur(8px); display:none; align-items:flex-end; justify-content:center; z-index:2000; padding:0 12px 16px; }
@@ -655,8 +656,7 @@ function switchTab(tab) {
     if (listEl) listEl.style.display = 'none';
     if (headerEl) headerEl.style.display = 'none';
     if (mineEl) {
-      mineEl.style.display = 'flex';
-      mineEl.style.flexDirection = 'column';
+      mineEl.style.display = 'block';
       mineEl.style.overflowY = 'scroll';
       mineEl.style.webkitOverflowScrolling = 'touch';
       mineEl.style.flex = '1';
@@ -686,8 +686,7 @@ function setFilter(f, btn) {
     if (listEl)   listEl.style.display   = 'none';
     if (headerEl) headerEl.style.display = 'none';
     if (mineEl) {
-      mineEl.style.display = 'flex';
-      mineEl.style.flexDirection = 'column';
+      mineEl.style.display = 'block';
       mineEl.style.overflowY = 'scroll';
       mineEl.style.webkitOverflowScrolling = 'touch';
       mineEl.style.flex = '1';
@@ -787,17 +786,6 @@ async function renderMyShipments() {
           ${badgeHtml}
           <div class="card-price-text" style="font-family:monospace;font-weight:900;font-size:15px;color:var(--accent)">₪${b.price}</div>
           <span id="ms-arrow-${idx}" style="color:#94a3b8;font-size:16px;transition:transform .2s">▼</span>
-        </div>
-      </div>
-      <div onclick="toggleMyShipment('ms-${idx}')" style="padding:11px 12px;display:flex;align-items:center;gap:8px;cursor:pointer">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:13px;direction:ltr;text-align:right">${s.from_city||''} → ${s.to_city||''}</div>
-          <div style="font-size:11px;color:${myColor};margin-top:3px;font-weight:600">${myLabel}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          ${badgeHtml}
-          <div style="font-family:monospace;font-weight:800;font-size:14px;color:var(--accent)">₪${b.price}</div>
-          <span id="ms-arrow-${idx}" style="color:var(--muted);font-size:11px">▼</span>
         </div>
       </div>
 
