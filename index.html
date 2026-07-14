@@ -26,7 +26,7 @@
   --shadow-md:0 4px 16px rgba(0,0,0,.6);
   --shadow-lg:0 8px 32px rgba(0,0,0,.7);
 }
-body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:var(--text); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:var(--text); height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -128,14 +128,14 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
 
 @media (max-width:768px) {
   #main { flex-direction:column !important; }
-  #map-wrap { width:100% !important; height:38vh !important; min-width:unset !important; border-left:none !important; flex-shrink:0 !important; touch-action:pan-x pan-y !important; }
+  #map-wrap { width:100% !important; height:34vh !important; min-width:unset !important; border-left:none !important; flex-shrink:0 !important; touch-action:pan-x pan-y !important; }
   #sidebar { width:100% !important; flex:1 !important; height:auto !important; position:relative !important; inset:auto !important; border-radius:20px 20px 0 0 !important; overflow:hidden !important; display:flex !important; flex-direction:column !important; box-shadow:0 -4px 24px rgba(0,0,0,.7) !important; pointer-events:all !important; background:var(--deep) !important; }
   #earnings { padding:10px 14px !important; flex-shrink:0 !important; }
   .earn-item .val { font-size:16px !important; }
   .earn-item .val2 { font-size:17px !important; }
   #tab-all, #tab-near, #tab-mine { font-size:13px !important; padding:13px 4px !important; font-weight:700 !important; }
-  #list { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; overscroll-behavior:contain !important; padding:8px 8px 120px !important; gap:8px !important; }
-  #my-shipments-tab { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; pointer-events:all !important; overscroll-behavior:contain !important; padding:8px 8px 120px !important; background:var(--black) !important; }
+  #list { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; overscroll-behavior:contain !important; padding:8px 8px calc(150px + env(safe-area-inset-bottom,0px)) !important; gap:8px !important; }
+  #my-shipments-tab { flex:1 !important; overflow-y:scroll !important; -webkit-overflow-scrolling:touch !important; min-height:0 !important; pointer-events:all !important; overscroll-behavior:contain !important; padding:8px 8px calc(150px + env(safe-area-inset-bottom,0px)) !important; background:var(--black) !important; }
   .ship-card { padding:14px !important; border-radius:14px !important; }
   .driver-my-card { border-radius:16px !important; margin-bottom:10px !important; }
   .driver-my-card .card-header { padding:14px 16px !important; min-height:64px !important; }
@@ -685,7 +685,14 @@ function setFilter(f, btn) {
     // הצג לשונית "ההובלות שלי"
     if (listEl)   listEl.style.display   = 'none';
     if (headerEl) headerEl.style.display = 'none';
-    if (mineEl)   mineEl.style.display   = 'block';
+    if (mineEl) {
+      mineEl.style.display = 'flex';
+      mineEl.style.flexDirection = 'column';
+      mineEl.style.overflowY = 'scroll';
+      mineEl.style.webkitOverflowScrolling = 'touch';
+      mineEl.style.flex = '1';
+      mineEl.style.minHeight = '0';
+    }
     renderMyShipments();
   } else {
     if (listEl)   listEl.style.display   = '';
