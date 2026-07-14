@@ -2187,7 +2187,7 @@ async function loadDriverStats() {
     .from('bids')
     .select('price, shipments(driver_paid, driver_paid_at)')
     .eq('driver_id', currentUser.id)
-    .eq('status', 'chosen');
+    .in('status', ['chosen', 'archived']);
   if (!data) return;
   const weeklyTotal = data
     .filter(b => {
