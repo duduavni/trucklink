@@ -149,6 +149,12 @@ body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:v
   .leaflet-top.leaflet-left { top:8px !important; left:8px !important; }
   #hint { display:none !important; }
 
+  /* BUSINESS VIEW - mobile: full-width list, map on top like driver view */
+  #business-view { flex-direction:column !important; }
+  #business-view > div:first-child { width:100% !important; height:auto !important; flex:1 !important; min-height:0 !important; border-right:none !important; }
+  #b-list { max-height:none !important; overflow-y:scroll !important; overscroll-behavior:contain !important; padding-bottom:calc(120px + env(safe-area-inset-bottom,0px)) !important; }
+  #b-map-wrap { order:-1; flex:none !important; height:30vh !important; }
+
 </style>
 </head>
 <body>
@@ -2079,18 +2085,18 @@ function setMode(mode) {
   const btnB      = document.getElementById('btn-business');
 
   if (mode === 'driver') {
-    driverEl.style.display  = 'block';
-    sidebarEl.style.display = 'flex';
-    bizEl.style.display     = 'none';
+    driverEl.style.setProperty('display', 'block', 'important');
+    sidebarEl.style.setProperty('display', 'flex', 'important');
+    bizEl.style.setProperty('display', 'none', 'important');
     btnD.style.background   = 'var(--accent)';
     btnD.style.color        = '#fff';
     btnB.style.background   = 'transparent';
     btnB.style.color        = 'var(--muted)';
     setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 100);
   } else {
-    driverEl.style.display  = 'none';
-    sidebarEl.style.display = 'none';
-    bizEl.style.display     = 'flex';
+    driverEl.style.setProperty('display', 'none', 'important');
+    sidebarEl.style.setProperty('display', 'none', 'important');
+    bizEl.style.setProperty('display', 'flex', 'important');
     btnD.style.background   = 'transparent';
     btnD.style.color        = 'var(--muted)';
     btnB.style.background   = 'var(--accent)';
@@ -2116,6 +2122,7 @@ function setMode(mode) {
       }, 100);
     } else {
       renderBList();
+      setTimeout(() => { try { bMap.invalidateSize(); } catch(e){} }, 100);
     }
   }
 }
