@@ -841,6 +841,9 @@ async function renderMyShipments() {
       </div>
     </div>`;
   }).join('');
+
+  // רענן הכנסה שבועית בכל פתיחת "הובלות פעילות" (לא תלוי ב-realtime בלבד)
+  loadDriverStats();
 }
 
 async function deleteCompletedShipment(bidId, btn) {
@@ -2130,7 +2133,7 @@ async function initAuth() {
 
 async function loadDriverStats() {
   if (!currentUser || currentProfile?.role !== 'driver') return;
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const weekAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
   // נבדוק הכנסות לפי bids עם driver_paid — גם אם העסק מחק את ההובלה
   const { data } = await sb
     .from('bids')
@@ -2139,7 +2142,14 @@ async function loadDriverStats() {
     .eq('status', 'chosen');
   if (!data) return;
   const weeklyTotal = data
-    .filter(b => b.shipments?.driver_paid && b.shipments?.driver_paid_at > weekAgo)
+    .filter(b => {
+      const sh = b.shipments;
+      if (!sh?.driver_paid) return false;
+      // אם אין חותמת זמן - עדיין נספור (עדיף להציג הכנסה מאשר להסתיר)
+      if (!sh.driver_paid_at) return true;
+      const paidMs = new Date(sh.driver_paid_at).getTime();
+      return isNaN(paidMs) ? true : paidMs >= weekAgoMs;
+    })
     .reduce((sum, b) => sum + Math.round((b.price || 0) * 0.90), 0);
   const el = document.getElementById('weekly-income');
   if (el) el.textContent = `₪${weeklyTotal.toLocaleString('he-IL')}`;
