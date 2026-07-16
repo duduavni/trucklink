@@ -4009,5 +4009,44 @@ initAuth().then(() => {
   requestNotificationPermission();
 });
 </script>
+
+<!-- ===== CULPRIT FINDER v2 - זמני ===== -->
+<div id="dbg" style="position:fixed;bottom:0;left:0;z-index:99999;background:#FEC901;color:#000;font:10px/1.35 monospace;padding:6px 8px;direction:ltr;text-align:left;border-top-right-radius:8px;max-width:88vw;white-space:pre-wrap;word-break:break-all"></div>
+<script>
+(function(){
+  function id(e){
+    var t = e.tagName.toLowerCase();
+    if (e.id) t += '#' + e.id;
+    else if (e.className && typeof e.className === 'string' && e.className.trim())
+      t += '.' + e.className.trim().split(/\s+/).slice(0,2).join('.');
+    return t;
+  }
+  function chain(e){
+    var p = [], n = e;
+    while (n && n !== document.body && p.length < 4) { p.push(id(n)); n = n.parentElement; }
+    return p.join(' < ');
+  }
+  function scan(){
+    var cw = document.documentElement.clientWidth, hits = [];
+    document.querySelectorAll('body *').forEach(function(e){
+      if (e.closest('#dbg')) return;
+      var r = e.getBoundingClientRect();
+      if (r.width < 2) return;
+      if (Math.round(r.width) > cw + 1) hits.push({ e:e, w: Math.round(r.width), l: Math.round(r.left) });
+    });
+    hits.sort(function(a,b){ return b.w - a.w; });
+    var out = 'client=' + cw + '  scroll=' + document.documentElement.scrollWidth + '\n';
+    out += 'רחבים מהמסך: ' + hits.length + '\n';
+    // האשם האמיתי = הרדוד ביותר בעץ, לא הרחב ביותר
+    out += hits.slice(0,5).map(function(h){
+      return '► W' + h.w + ' L' + h.l + '\n  ' + chain(h.e);
+    }).join('\n');
+    document.getElementById('dbg').textContent = out;
+  }
+  setTimeout(scan, 1500);
+  setInterval(scan, 3000);
+})();
+</script>
+<!-- ===== END ===== -->
 </body>
 </html>
