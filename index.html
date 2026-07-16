@@ -26,7 +26,8 @@
   --shadow-md:0 4px 16px rgba(0,0,0,.6);
   --shadow-lg:0 8px 32px rgba(0,0,0,.7);
 }
-body { font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:var(--text); height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+html { width:100%; max-width:100%; overflow:hidden; }
+body { max-width:100%; font-family:'Segoe UI',Arial,sans-serif; background:var(--black); color:var(--text); height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -4008,30 +4009,5 @@ initAuth().then(() => {
   requestNotificationPermission();
 });
 </script>
-
-<!-- ===== DEBUG BADGE - זמני, למחוק אחרי הבדיקה ===== -->
-<div id="dbg" style="position:fixed;top:0;right:0;z-index:99999;background:#FEC901;color:#000;font:11px/1.35 monospace;padding:6px 8px;direction:ltr;text-align:left;border-bottom-left-radius:8px;pointer-events:none;white-space:pre"></div>
-<script>
-(function(){
-  function upd(){
-    var o = document.getElementById('auth-overlay');
-    var r = o ? o.getBoundingClientRect() : null;
-    document.getElementById('dbg').textContent =
-      'inner  ' + innerWidth + ' x ' + innerHeight + '\n' +
-      'outer  ' + outerWidth + ' x ' + outerHeight + '\n' +
-      'screen ' + screen.width + '\n' +
-      'dpr    ' + devicePixelRatio + '\n' +
-      'client ' + document.documentElement.clientWidth + '\n' +
-      'scroll ' + document.documentElement.scrollWidth + '\n' +
-      'media768 ' + matchMedia('(max-width:768px)').matches + '\n' +
-      'vv     ' + (window.visualViewport ? Math.round(visualViewport.width)+' off'+Math.round(visualViewport.offsetLeft)+' sc'+visualViewport.scale.toFixed(2) : 'n/a') + '\n' +
-      'overlay ' + (r ? Math.round(r.left)+','+Math.round(r.top)+' '+Math.round(r.width)+'x'+Math.round(r.height) : 'none');
-  }
-  setInterval(upd, 400); upd();
-  addEventListener('resize', upd);
-  if (window.visualViewport) { visualViewport.addEventListener('resize', upd); visualViewport.addEventListener('scroll', upd); }
-})();
-</script>
-<!-- ===== END DEBUG BADGE ===== -->
 </body>
 </html>
