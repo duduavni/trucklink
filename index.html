@@ -3281,6 +3281,16 @@ window.submitNewShipment = async function(btn) {
   const images = preview ? Array.from(preview.children).map(el => el._file).filter(Boolean) : [];
   if (!from || !to) { showToast('נא למלא מוצא ויעד','#ef4444'); return; }
 
+  // חסום פרטי קשר בתיאור המוצר ובהערות לנהג – התיאום נעשה רק דרך הצ'אט אחרי נאמנות
+  if (containsContactInfo(description)) {
+    showToast('⚠️ לא ניתן לכלול טלפון/מייל בתיאור המוצר. התיאום נעשה בצ\'אט לאחר תשלום לנאמנות', '#f59e0b');
+    return;
+  }
+  if (containsContactInfo(driver_note)) {
+    showToast('⚠️ לא ניתן לכלול טלפון/מייל בהערות לנהג. התיאום נעשה בצ\'אט לאחר תשלום לנאמנות', '#f59e0b');
+    return;
+  }
+
   const originalText = btn.textContent;
   btn.disabled = true; btn.textContent = images.length ? '📤 מעלה תמונות...' : '⏳ מפרסם...';
 
@@ -3454,9 +3464,11 @@ function renderMessages(messages) {
 
 // ── סינון פרטי קשר בצ'אט ────────────────────────────────────
 function containsContactInfo(text) {
-  const phoneRegex = /(\+972|0)([23489]|5[0-9]|7[0-9])[0-9]{7}/g;
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-  const whatsappRegex = /wa\.me|whatsapp/gi;
+  if (!text) return false;
+  // טלפון ישראלי – תופס גם מספרים עם מקף/רווח/נקודה בין הספרות (למשל 052-618-1006)
+  const phoneRegex = /(\+?972|0)[-.\s]?(5\d|7\d|[23489])([-.\s]?\d){7}/;
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+  const whatsappRegex = /wa\.me|whatsapp/i;
   return phoneRegex.test(text) || emailRegex.test(text) || whatsappRegex.test(text);
 }
 
