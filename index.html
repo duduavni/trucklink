@@ -3346,6 +3346,7 @@ function hideSuggest(listId) {
 // ══════════════════════════════════════════════════════════════
 let chatSubscription = null;
 let activeChatShipment = null;
+let activeChatEscrowPaid = false;
 
 async function openChat(shipmentId, otherUserName) {
   // בדוק שהתשלום לנאמנות בוצע - הצ'אט נעול עד אז
@@ -3355,6 +3356,7 @@ async function openChat(shipmentId, otherUserName) {
     return;
   }
   activeChatShipment = shipmentId;
+  activeChatEscrowPaid = !!ship.escrow_paid;
   markShipmentMessagesRead(shipmentId);
   document.getElementById('chat-overlay')?.remove();
   const overlay = document.createElement('div');
@@ -3376,6 +3378,7 @@ async function openChat(shipmentId, otherUserName) {
         <button onclick="closeChat()" style="background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:inherit;font-size:16px;min-width:44px;min-height:44px">✕</button>
       </div>
       <!-- messages -->
+      <div style="background:rgba(34,197,94,.1);border-bottom:1px solid rgba(34,197,94,.25);color:#86efac;font-size:11px;text-align:center;padding:6px 12px;flex-shrink:0">✅ הכסף בנאמנות — ניתן לשתף טלפון ופרטי קשר לתיאום ההובלה</div>
       <div id="chat-messages" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:flex;flex-direction:column;gap:10px">
         <div style="text-align:center;color:var(--muted);font-size:12px;margin:auto">טוען הודעות...</div>
       </div>
@@ -3462,9 +3465,10 @@ async function sendChatMessage() {
   const content = input?.value?.trim();
   if (!content || !currentUser || !activeChatShipment) return;
 
-  // חסום שיתוף פרטי קשר בצ'אט
-  if (containsContactInfo(content)) {
-    showToast('⚠️ לא ניתן לשתף פרטי קשר בצ\'אט לפני השלמת ההובלה', '#f59e0b');
+  // חסום שיתוף פרטי קשר בצ'אט – רק לפני תשלום לנאמנות.
+  // אחרי שהכסף בנאמנות ההתקשרות לגיטימית וניתן לשתף טלפון/מייל.
+  if (!activeChatEscrowPaid && containsContactInfo(content)) {
+    showToast('⚠️ לא ניתן לשתף פרטי קשר בצ\'אט לפני תשלום לנאמנות', '#f59e0b');
     return;
   }
 
@@ -3531,6 +3535,7 @@ function subscribeChatRealtime(shipmentId) {
 function closeChat() {
   if (chatSubscription) { chatSubscription.unsubscribe(); chatSubscription=null; }
   activeChatShipment = null;
+  activeChatEscrowPaid = false;
   document.getElementById('chat-overlay')?.remove();
 }
 
