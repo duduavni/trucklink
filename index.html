@@ -200,6 +200,7 @@ body { max-width:100%; font-family:'Segoe UI',Arial,sans-serif; background:var(-
       </div>
       <div id="ri-desc" style="display:none;font-size:12px;color:var(--muted);line-height:1.5;padding:8px 0;border-top:1px solid rgba(255,255,255,.1);margin-top:2px"></div>
       <div id="ri-note" style="display:none;font-size:11px;color:var(--accent);line-height:1.5;padding:6px 8px;background:rgba(245,166,35,.08);border-radius:8px;margin-top:4px;border:1px solid rgba(245,166,35,.2)"></div>
+      <div id="ri-flags" style="display:none;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
       <div id="ri-images" style="display:none;gap:6px;overflow-x:auto;padding:2px 0 6px"></div>
       <div class="ri-earn">
         <span class="ri-earn-label">הכנסה נטו (90%)</span>
@@ -289,6 +290,14 @@ body { max-width:100%; font-family:'Segoe UI',Arial,sans-serif; background:var(-
     <!-- hidden region-chips div kept for JS compatibility -->
     <div id="region-chips" style="display:none"></div>
 
+    <div id="driver-search-wrap" style="padding:8px 12px 4px;flex-shrink:0;background:var(--deep);pointer-events:all;position:relative">
+      <div style="position:relative">
+        <input id="driver-city-search" placeholder="🔍 חפש עיר (מוצא או יעד)..." autocomplete="off"
+          oninput="onDriverCitySearch(this.value)"
+          style="width:100%;padding:9px 12px;background:var(--card2);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:13px;outline:none;font-family:inherit;direction:rtl;box-sizing:border-box">
+        <button id="driver-search-clear" onclick="clearDriverCitySearch()" style="display:none;position:absolute;left:8px;top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:6px;width:22px;height:22px;cursor:pointer;font-family:inherit;padding:0;line-height:1">✕</button>
+      </div>
+    </div>
     <div id="list-header" style="padding:6px 14px 4px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted);flex-shrink:0;background:var(--deep);pointer-events:all"><span id="list-count"></span><span style="color:var(--accent);font-weight:700">לפי מחיר ↓</span></div>
     <div id="list"></div>
     <div id="my-shipments-tab" style="display:none;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 10px 120px;box-sizing:border-box;flex:1;min-height:0;pointer-events:all;overscroll-behavior:contain;position:relative"></div>
@@ -478,6 +487,7 @@ function getDeliveryStepIndex(status) {
 
 // ── State ──
 let currentFilter = 'all';
+let citySearch = '';
 let selectedId    = null;
 let currentPrice  = 0;
 let currentShip   = null;
@@ -598,6 +608,19 @@ function selectShipment(id) {
   if (s.driver_note) { noteEl.innerHTML='💬 הערה לנהג: '+s.driver_note; noteEl.style.display='block'; }
   else { noteEl.style.display='none'; }
 
+  const flagsEl=document.getElementById('ri-flags');
+  if (flagsEl) {
+    const chips=[];
+    const vLabels={any:'🚐 כל רכב',van:'🚐 ואן',small:'🚛 משאית קטנה',large:'🚚 משאית גדולה'};
+    if (s.vehicle_type && s.vehicle_type!=='any') chips.push(vLabels[s.vehicle_type]||s.vehicle_type);
+    if (s.crane_needed)   chips.push('🏗️ נדרש מנוף');
+    if (s.porters_needed) chips.push('💪 נדרשת סבלות');
+    if (chips.length) {
+      flagsEl.innerHTML=chips.map(c=>`<span style="background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.35);color:var(--accent);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700">${c}</span>`).join('');
+      flagsEl.style.display='flex';
+    } else { flagsEl.style.display='none'; }
+  }
+
   const imgsEl=document.getElementById('ri-images');
   if (s.images && s.images.length) {
     imgsEl.innerHTML = s.images.map(url=>`<img src="${url}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex-shrink:0;cursor:pointer" onclick="window.open('${url}','_blank')">`).join('');
@@ -687,11 +710,13 @@ function setFilter(f, btn) {
   const listEl    = document.getElementById('list');
   const headerEl  = document.getElementById('list-header');
   const mineEl    = document.getElementById('my-shipments-tab');
+  const searchEl  = document.getElementById('driver-search-wrap');
 
   if (f === 'mine') {
     // הצג לשונית "ההובלות שלי"
     if (listEl)   listEl.style.display   = 'none';
     if (headerEl) headerEl.style.display = 'none';
+    if (searchEl) searchEl.style.display = 'none';
     if (mineEl) {
       mineEl.style.display = 'block';
       mineEl.style.overflowY = 'scroll';
@@ -704,6 +729,7 @@ function setFilter(f, btn) {
     if (listEl)   listEl.style.display   = '';
     if (headerEl) headerEl.style.display = '';
     if (mineEl)   mineEl.style.display   = 'none';
+    if (searchEl) searchEl.style.display = '';
     renderMarkers();
     renderList();
   }
@@ -883,7 +909,14 @@ function toggleMyShipment(id) {
 }
 
 function getFiltered() {
+  const q = citySearch.trim();
   return SHIPMENTS.filter(s=>{
+    // חיפוש עיר – מסנן לפי שם עיר מוצא/יעד (מעל כל שאר הסינונים)
+    if (q) {
+      const fromName = (CITIES[s.fromId]?.name || s.fromCity || '');
+      const toName   = (CITIES[s.toId]?.name   || s.toCity   || '');
+      if (!fromName.includes(q) && !toName.includes(q)) return false;
+    }
     if(currentFilter==='urgent') return s.urgent;
     if(currentFilter==='all') return true;
     if(currentFilter==='near') return getDist(s.fromId,s.toId)<80;
@@ -895,6 +928,25 @@ function getFiltered() {
     }
     return CITIES[s.fromId]?.region===currentFilter;
   }).sort((a,b)=>b.price-a.price);
+}
+
+// חיפוש עיר בצד הנהג
+function onDriverCitySearch(val) {
+  citySearch = val || '';
+  const clearBtn = document.getElementById('driver-search-clear');
+  if (clearBtn) clearBtn.style.display = citySearch.trim() ? 'block' : 'none';
+  renderList();
+  if (typeof renderMarkers === 'function') renderMarkers();
+}
+
+function clearDriverCitySearch() {
+  citySearch = '';
+  const input = document.getElementById('driver-city-search');
+  if (input) input.value = '';
+  const clearBtn = document.getElementById('driver-search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderList();
+  if (typeof renderMarkers === 'function') renderMarkers();
 }
 
 // ── RADIUS FILTER ──
@@ -1186,6 +1238,8 @@ function renderList() {
             <span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text2)">⚖️ ${s.weight}ק"ג</span>
             <span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text2)">📏 ${dist}ק"מ</span>
             <span style="background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text2)">📅 ${s.date}</span>
+            ${s.crane_needed ? `<span style="background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.4);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--accent);font-weight:700">🏗️ מנוף</span>` : ''}
+            ${s.porters_needed ? `<span style="background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.4);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--accent);font-weight:700">💪 סבלות</span>` : ''}
           </div>
         </div>
         <div style="text-align:left;margin-right:10px;flex-shrink:0">
@@ -2057,11 +2111,11 @@ function openNewShipment() {
         </div>
         <div style="flex:1">
           <div style="font-size:12px;color:var(--muted);margin-bottom:5px">📅 תאריך</div>
-          <input id="ns-date" type="date" style="${INP}">
+          <input id="ns-date" type="date" style="${INP}" onchange="clearPickupDayBtns()">
           <div style="display:flex;gap:4px;margin-top:4px">
-            <button type="button" onclick="document.getElementById('ns-date').value=new Date().toISOString().split('T')[0]"
+            <button type="button" id="ns-day-today" onclick="setPickupDay('today',this)"
               style="flex:1;background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3);color:var(--accent);border-radius:6px;padding:4px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700">היום</button>
-            <button type="button" onclick="let t=new Date();t.setDate(t.getDate()+1);document.getElementById('ns-date').value=t.toISOString().split('T')[0]"
+            <button type="button" id="ns-day-tomorrow" onclick="setPickupDay('tomorrow',this)"
               style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px;cursor:pointer;font-family:inherit;font-size:10px">מחר</button>
           </div>
         </div>
@@ -2074,10 +2128,35 @@ function openNewShipment() {
       <!-- Vehicle type -->
       <div style="margin-bottom:14px">
         <div style="font-size:12px;color:var(--muted);margin-bottom:7px">🚛 סוג רכב נדרש</div>
+        <input type="hidden" id="ns-vehicle" value="any">
         <div style="display:flex;gap:7px">
           ${[['any','🚐 כלשהו'],['van','🚐 ואן'],['small','🚛 קטנה'],['large','🚚 גדולה']].map(([v,l])=>`
           <button onclick="selectVehicle('${v}',this)" data-v="${v}"
-            style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:all .18s">${l}</button>`).join('')}
+            style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid ${v==='any'?'var(--accent)':'var(--border)'};background:${v==='any'?'rgba(245,166,35,.1)':'transparent'};color:${v==='any'?'var(--accent)':'var(--muted)'};font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:all .18s">${l}</button>`).join('')}
+        </div>
+      </div>
+
+      <!-- Crane + Porters -->
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:7px">🏗️ נדרש מנוף?</div>
+          <input type="hidden" id="ns-crane" value="no">
+          <div style="display:flex;gap:6px">
+            <button onclick="selectYesNo('ns-crane','yes',this)" data-yn="yes"
+              style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .18s">כן</button>
+            <button onclick="selectYesNo('ns-crane','no',this)" data-yn="no"
+              style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid var(--accent);background:rgba(245,166,35,.1);color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .18s">לא</button>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:7px">💪 נדרשת סבלות?</div>
+          <input type="hidden" id="ns-porters" value="no">
+          <div style="display:flex;gap:6px">
+            <button onclick="selectYesNo('ns-porters','yes',this)" data-yn="yes"
+              style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .18s">כן</button>
+            <button onclick="selectYesNo('ns-porters','no',this)" data-yn="no"
+              style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid var(--accent);background:rgba(245,166,35,.1);color:var(--accent);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:all .18s">לא</button>
+          </div>
         </div>
       </div>
 
@@ -2131,6 +2210,43 @@ function selectVehicle(v, btn) {
     b.style.borderColor='var(--border)'; b.style.background='transparent'; b.style.color='var(--muted)';
   });
   btn.style.borderColor='var(--accent)'; btn.style.background='rgba(245,166,35,.1)'; btn.style.color='var(--accent)';
+  const hidden = document.getElementById('ns-vehicle');
+  if (hidden) hidden.value = v;   // ← שומר בפועל את הבחירה
+}
+
+// בחירת היום/מחר – מעדכן גם את שדה התאריך וגם את הסימון הויזואלי
+function setPickupDay(which, btn) {
+  const d = new Date();
+  if (which === 'tomorrow') d.setDate(d.getDate() + 1);
+  const dateInput = document.getElementById('ns-date');
+  if (dateInput) dateInput.value = d.toISOString().split('T')[0];
+  // סימון פעיל
+  ['ns-day-today','ns-day-tomorrow'].forEach(id => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.style.background='transparent'; b.style.borderColor='var(--border)'; b.style.color='var(--muted)'; b.style.fontWeight='400';
+  });
+  btn.style.background='rgba(245,166,35,.15)'; btn.style.borderColor='rgba(245,166,35,.3)'; btn.style.color='var(--accent)'; btn.style.fontWeight='700';
+}
+
+// אם המשתמש בחר תאריך ידני – מבטלים את הסימון של היום/מחר
+function clearPickupDayBtns() {
+  ['ns-day-today','ns-day-tomorrow'].forEach(id => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.style.background='transparent'; b.style.borderColor='var(--border)'; b.style.color='var(--muted)'; b.style.fontWeight='400';
+  });
+}
+
+// כפתורי כן/לא גנריים (מנוף / סבלות) – שומר לשדה נסתר
+function selectYesNo(hiddenId, val, btn) {
+  const wrap = btn.parentElement;
+  wrap.querySelectorAll('[data-yn]').forEach(b => {
+    b.style.borderColor='var(--border)'; b.style.background='transparent'; b.style.color='var(--muted)';
+  });
+  btn.style.borderColor='var(--accent)'; btn.style.background='rgba(245,166,35,.1)'; btn.style.color='var(--accent)';
+  const hidden = document.getElementById(hiddenId);
+  if (hidden) hidden.value = val;
 }
 
 function handleImgSelect(input) {
@@ -2855,6 +2971,11 @@ async function loadShipmentsFromDB() {
         title:   s.title || `${s.from_city} → ${s.to_city}`,
         description: s.description || '',
         driver_note: s.driver_note || '',
+        vehicle_type: s.vehicle_type || 'any',
+        crane_needed:   !!s.crane_needed,
+        porters_needed: !!s.porters_needed,
+        fromCity: s.from_city || '',
+        toCity:   s.to_city || '',
         images:  s.image_urls || [],
       }));
 
@@ -2959,9 +3080,13 @@ async function postShipmentToDB(formData) {
     from_city:    formData.from,
     to_city:      formData.to,
     weight:       parseInt(formData.weight) || 0,
-    pickup_date:  new Date().toISOString().split('T')[0],
+    pickup_date:  formData.pickup_date || new Date().toISOString().split('T')[0],
     base_price:   parseInt(formData.price) || 0,
     description:  formData.description || '',
+    driver_note:  formData.driver_note || '',
+    vehicle_type: formData.vehicle_type || 'any',
+    crane_needed:   !!formData.crane_needed,
+    porters_needed: !!formData.porters_needed,
     image_urls:   imageUrls,
     status:       'open',
   });
@@ -3147,6 +3272,11 @@ window.submitNewShipment = async function(btn) {
   const price = document.getElementById('ns-price')?.value|| '';
   const weight= document.getElementById('ns-weight')?.value||'';
   const description = document.getElementById('ns-desc')?.value || '';
+  const pickup_date = document.getElementById('ns-date')?.value || '';
+  const driver_note = document.getElementById('ns-notes')?.value || '';
+  const vehicle_type = document.getElementById('ns-vehicle')?.value || 'any';
+  const crane_needed   = document.getElementById('ns-crane')?.value === 'yes';
+  const porters_needed = document.getElementById('ns-porters')?.value === 'yes';
   const preview = document.getElementById('img-preview');
   const images = preview ? Array.from(preview.children).map(el => el._file).filter(Boolean) : [];
   if (!from || !to) { showToast('נא למלא מוצא ויעד','#ef4444'); return; }
@@ -3154,7 +3284,7 @@ window.submitNewShipment = async function(btn) {
   const originalText = btn.textContent;
   btn.disabled = true; btn.textContent = images.length ? '📤 מעלה תמונות...' : '⏳ מפרסם...';
 
-  const success = await postShipmentToDB({ from, to, price, weight, description, images });
+  const success = await postShipmentToDB({ from, to, price, weight, description, images, pickup_date, driver_note, vehicle_type, crane_needed, porters_needed });
   if (success) {
     _origSubmitShipment(btn);
     await loadShipmentsFromDB();
