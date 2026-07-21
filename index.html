@@ -3577,12 +3577,15 @@ function renderTrackingBar(shipmentId, status, isDriver, bidStatus, escrowPaid) 
     const color   = done ? '#16a34a' : active ? '#f5a623' : '#e2e8f0';
     const bg      = done ? '#16a34a' : active ? '#f5a623' : '#fff';
     const textCol = active ? '#f5a623' : done ? '#16a34a' : '#94a3b8';
+    // בצד הנהג: שלב "נהג אישר" מוצג כ"ממתין לתשלום" עד שהעסק משלם לנאמנות
+    let stepLabel = step.label;
+    if (isDriver && step.key === 'driver_confirmed' && !escrowPaid) stepLabel = 'ממתין לתשלום';
     return `
       <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">
         <div style="width:34px;height:34px;border-radius:50%;background:${bg};border:2.5px solid ${color};display:flex;align-items:center;justify-content:center;font-size:${done?'14px':'13px'};transition:all .3s;color:${done||active?'#fff':'#94a3b8'};box-shadow:${active?'0 0 10px '+color+'55':'none'}">
           ${done ? '✓' : step.icon}
         </div>
-        <div style="font-size:10px;color:${textCol};text-align:center;font-weight:${active?'800':'500'};line-height:1.2">${step.label}</div>
+        <div style="font-size:10px;color:${textCol};text-align:center;font-weight:${active?'800':'500'};line-height:1.2">${stepLabel}</div>
       </div>
       ${i < DELIVERY_STEPS.length - 1 ? `<div style="flex:1;height:3px;background:${done?'#16a34a':'#e2e8f0'};margin-top:17px;border-radius:2px;transition:all .3s"></div>` : ''}`;
   }).join('');
