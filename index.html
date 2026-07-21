@@ -864,10 +864,10 @@ async function renderMyShipments() {
         ${imagesHtml}
         <div style="display:flex;gap:8px;margin-top:10px">
           ${s.escrow_paid
-            ? `<button data-chat-shipment="${b.shipment_id}" onclick="openChatFromBanner(this)" data-shipment-id="${b.shipment_id}" data-business-name="${businessName.replace(/"/g,'&quot;')}"
-                style="flex:1;background:rgba(41,121,255,.15);border:1.5px solid rgba(41,121,255,.3);color:#82B1FF;border-radius:10px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px">
-                ${badgeHtml} 💬 צ'אט עם העסק
-              </button>`
+            ? `<a href="${waLink(businessPhone, buildAgreementText({from:s.from_city,to:s.to_city,weight:s.weight,date:s.pickup_date?new Date(s.pickup_date).toLocaleDateString('he-IL'):'',price:b.price,title:s.title,ref:(b.shipment_id||'').slice(0,8)}))}" target="_blank" rel="noopener"
+                style="flex:1;background:rgba(37,211,102,.15);border:1.5px solid rgba(37,211,102,.4);color:#25D366;border-radius:10px;padding:10px;text-decoration:none;font-family:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">
+                💬 וואטסאפ עם העסק
+              </a>`
             : `<div style="flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px;font-size:12px;text-align:center">
                 🔒 צ'אט יפתח אחרי תשלום לנאמנות
               </div>`}
@@ -1472,10 +1472,10 @@ function renderBList() {
         🔒 שלם לנאמנות ₪${s.finalPrice||s.price} — פתח צ'אט
       </button>`;
     } else if (['driver_confirmed','pickup','on_the_way'].includes(s.status) && s.escrow_paid) {
-      primaryAction = `<button onclick="event.stopPropagation();openChat('${s.id}','${(getDriverName(s)).replace(/'/g,"\\'")}');event.stopPropagation()" data-chat-shipment="${s.id}"
-        style="width:100%;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#93c5fd;border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px">
-        💬 צ'אט עם הנהג
-      </button>`;
+      primaryAction = `<a href="${waLink(s.acceptedDriverPhone, buildAgreementText({from:s.from,to:s.to,weight:s.weight,date:s.date,price:s.finalPrice||s.price,title:s.title,ref:(s.id||'').slice(0,8)}))}" target="_blank" rel="noopener" onclick="event.stopPropagation()"
+        style="width:100%;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.4);color:#25D366;border-radius:9px;padding:10px;text-decoration:none;font-family:inherit;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">
+        💬 וואטסאפ עם הנהג
+      </a>`;
     } else if (s.status === 'delivered' && s.escrow_paid && !s.driver_paid) {
       primaryAction = `<button onclick="event.stopPropagation();openReleasePaymentModal('${s.id}',${s.finalPrice||s.price},'${(getDriverName(s)).replace(/'/g,"\\'")}')"
         style="width:100%;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:var(--black);border-radius:9px;padding:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:13px">
@@ -3027,7 +3027,7 @@ async function loadShipmentsFromDB() {
     // עסק – טוען הובלות שלו
     const { data, error } = await sb
       .from('shipments')
-      .select('*, bids(id, status, driver_id, price, profiles!driver_id(full_name))')
+      .select('*, bids(id, status, driver_id, price, profiles!driver_id(full_name, phone))')
       .eq('business_id', currentUser.id)
       .order('created_at', { ascending: false });
 
@@ -3065,6 +3065,7 @@ async function loadShipmentsFromDB() {
           delivery_note:       s.delivery_note || '',
           acceptedDriverId:    chosenBid?.driver_id || null,
           acceptedDriverName:  chosenBid?.profiles?.full_name || 'הנהג',
+          acceptedDriverPhone: chosenBid?.profiles?.phone || '',
           _driverNameLocked:   true,
           confirmation_expires_at: s.confirmation_expires_at || null,
           escrow_paid:         s.escrow_paid || false,
@@ -3257,6 +3258,30 @@ function cityToLatLng(name) {
 
 // מחזיר תאריך בפורמט YYYY-MM-DD לפי השעון המקומי (בלי הסטת UTC)
 function ymd(dt){ const p=n=>String(n).padStart(2,'0'); return dt.getFullYear()+'-'+p(dt.getMonth()+1)+'-'+p(dt.getDate()); }
+
+// ── WhatsApp: המרת טלפון ישראלי לפורמט בינלאומי + בניית קישור והודעת הסכם ──
+function waPhone(raw){
+  let p = String(raw||'').replace(/[^0-9]/g,'');
+  if (p.startsWith('972')) return p;
+  if (p.startsWith('0'))   return '972' + p.slice(1);
+  return p;
+}
+function buildAgreementText(o){
+  const L = ['📦 *trucko – פרטי הובלה*', ''];
+  L.push('📍 מוצא: ' + (o.from || '-'));
+  L.push('🎯 יעד: '  + (o.to   || '-'));
+  if (o.weight) L.push('⚖️ משקל: ' + o.weight + ' ק"ג');
+  if (o.date)   L.push('📅 תאריך איסוף: ' + o.date);
+  if (o.price)  L.push('💰 מחיר מוסכם: ₪' + o.price);
+  if (o.title)  L.push('📝 ' + o.title);
+  if (o.ref)    L.push('🔖 מס\' הובלה: ' + o.ref);
+  L.push('');
+  L.push('הודעה זו מהווה תיאום פרטי ההובלה שסוכמו דרך trucko ✅');
+  return L.join('\n');
+}
+function waLink(phone, text){
+  return 'https://wa.me/' + waPhone(phone) + '?text=' + encodeURIComponent(text);
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return 'היום';
