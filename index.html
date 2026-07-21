@@ -57,7 +57,7 @@ body { max-width:100%; font-family:'Segoe UI',Arial,sans-serif; background:var(-
 .leaflet-container { background:#e8eef4 !important; }
 .leaflet-control-zoom a { background:#fff!important; color:#475569!important; border-color:#e2e8f0!important; box-shadow:var(--shadow-sm)!important; }
 .leaflet-control-zoom a:hover { background:#f8f9fc!important; color:var(--text)!important; }
-.leaflet-control-attribution { background:rgba(255,255,255,.8)!important; color:#94a3b8!important; font-size:9px!important; }
+.leaflet-control-attribution { background:rgba(255,255,255,.4)!important; color:#b7bdc9!important; font-size:8px!important; padding:0 4px!important; opacity:.55; }
 .leaflet-control-attribution a { color:#94a3b8!important; }
 .tl-popup .leaflet-popup-content-wrapper { background:transparent!important; border:none!important; box-shadow:none!important; padding:0!important; }
 .tl-popup .leaflet-popup-content { margin:0!important; }
@@ -504,6 +504,7 @@ let popup         = null;
 
 // ── Init Map ──
 const map = L.map('map', { center:[31.8,34.9], zoom:7, zoomControl:true });
+map.attributionControl.setPrefix(false);   // הסרת המילה "Leaflet"
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:19
@@ -2347,6 +2348,7 @@ function setMode(mode) {
     if (!bMap) {
       setTimeout(() => {
         bMap = L.map('b-map', { center:[31.8,35.0], zoom:7, zoomControl:true });
+        bMap.attributionControl.setPrefix(false);   // הסרת המילה "Leaflet"
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           attribution:'© OpenStreetMap © CARTO', subdomains:'abcd', maxZoom:19
         }).addTo(bMap);
